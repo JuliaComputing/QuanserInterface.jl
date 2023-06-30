@@ -4,6 +4,7 @@ authors = ["Fredrik Bagge Carlson"]
 version = "1.0.0-DEV"
 
 [deps]
+Clang = "40e3b903-d033-50b4-a0cc-940c62c95e31"
 ControlSystemIdentification = "3abffc1c-5106-53b7-b354-a47bfc086282"
 ControlSystemsBase = "aaaaaaaa-a6ca-5380-bf3e-84a91bcd477e"
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
