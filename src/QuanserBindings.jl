@@ -3061,7 +3061,7 @@ const t_ubyte = Cuchar
 
 const t_uint8 = t_ubyte
 
-@cenum var"##Ctag#537"::UInt32 begin
+@cenum var"##Ctag#621"::UInt32 begin
     _false = 0
     _true = 1
 end

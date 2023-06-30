@@ -1,11 +1,11 @@
 using Clang.Generators
 
-const LIB_PATH = "/opt/quanser/hil_sdk/include"
-const headers =  [joinpath(LIB_PATH, header) for header in filter(x -> endswith(x, ".h"), readdir(LIB_PATH))] # include all .h files in the directory
-const output = "src/QuanserBindings.jl"
+LIB_PATH = "/opt/quanser/hil_sdk/include"
+headers =  [joinpath(LIB_PATH, header) for header in filter(x -> endswith(x, ".h"), readdir(LIB_PATH))] # include all .h files in the directory
+output = "src/QuanserBindings.jl"
 
 # make sure Clang.jl can find necessary headers included by your header file
-const clang_args = ["-I", LIB_PATH]
+clang_args = ["-I", LIB_PATH]
 
 # setup generator options
 args = get_default_args()
