@@ -4,6 +4,7 @@ authors = ["Fredrik Bagge Carlson"]
 version = "1.0.0-DEV"
 
 [deps]
+Clang = "40e3b903-d033-50b4-a0cc-940c62c95e31"
 ControlSystemIdentification = "3abffc1c-5106-53b7-b354-a47bfc086282"
 HardwareAbstractions = "9ac91abb-62f4-42c0-88e8-83732e93d543"
 PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
