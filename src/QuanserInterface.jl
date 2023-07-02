@@ -229,7 +229,7 @@ isasstable(p::QubeServo)  = false
     const ddyn::F = hw.rk4(furuta, Ts; supersample=10)
     p::P = pendulum_parameters()
     dynamics::D = furuta
-    measurement::M = (x, u, p, t) -> SA[x[1], -(x[2] - pi)]
+    measurement::M = (x, u, p, t) -> SA[x[1], (x[2] - pi)]
 end
 
 function furuta_parameters(; 
@@ -279,6 +279,7 @@ end
 
 @fastmath function furuta(x, u, p, t) # Quanser equations
     θ, α, θ̇, α̇ = x
+    α = pi-α
 
     Rm, kt, km, mr, r, Jr, br, mp, Lp, l, Jp, bp, g = p
     Lr = r
