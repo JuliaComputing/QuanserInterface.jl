@@ -71,7 +71,7 @@ measure = QuanserInterface.measure
 normalize_angles(x::Number) = mod(x+pi, 2pi)-pi
 normalize_angles(x::AbstractVector) = SA[normalize_angles(x[1]), normalize_angles(x[2]), x[3], x[4]]
 
-p = QubeServoPendulum(; Ts = 0.005)
+p = QubeServoPendulum(; Ts = 0.01)
 
 sys = QuanserInterface.linearized_pendulum()
 sysaug = add_measurement_disturbance(sys, [-1e-8;;], [0; 1;;])
@@ -186,7 +186,7 @@ function optimize_lqq(P, Q1, Q2, R1, R2; Tf = 2, CSweight = 0.0001, Msc=5.0)
     (; res, C, S, PS, CS, T, Msc, Q, R)
 end
 
-res = optimize_lqq(sysd, Q1, Q2, R1 + 1e-8I, R2; Tf = 2, CSweight = 0.0005, Msc=2.1)
+res = optimize_lqq(sysd, Q1, Q2, R1 + 1e-8I, R2; Tf = 2, CSweight = 0.0005, Msc=2.5)
 P = sysd
 (; C, S, PS, CS, T, Msc, Q, R) = res
 r1, r2 = sim(S, PS; Tf= 2)
