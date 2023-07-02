@@ -266,6 +266,7 @@ function balance_demo(p;
     u_max = 2.0,
     Tf = 10,
     controller = controller,
+    obsfilter = SysFilter(obs, copy(x0)),
 )
 
     initialize(p)
@@ -273,16 +274,17 @@ function balance_demo(p;
     N = round(Int, Tf/Ts)
     data = Vector{Vector{Float64}}(undef, 0)
     sizehint!(data, N)
-    obsfilter = SysFilter(obs, copy(x0))
+    
     t_start = time()
     y_start = measure(p)
     # y_start .* [1, 1]
+    simulation = processtype(p) isa SimulatedProcess
     try
         GC.gc()
         GC.enable(false)
         u = [0.0]
         for i = 1:N
-            @periodically Ts begin 
+            @periodically Ts simulation begin 
                 t = time() - t_start
                 y = measure(p) - y_start # Subtract initial position for a smoother experience
                 u, xh = controller(u, y, obsfilter)
