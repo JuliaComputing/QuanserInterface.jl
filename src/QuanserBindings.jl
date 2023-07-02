@@ -3102,13 +3102,13 @@ const hil_set_tstring_property = hil_set_string_property
 
 # Skipping MacroDefinition: EXPORT __attribute__ ( ( visibility ( "default" ) ) )
 
-const _utimbuf = utimbuf
+#const _utimbuf = utimbuf
 
 const O_BINARY = 0
 
 const O_LARGEFILE = 0
 
-const EFPOS = ENOTRECOVERABLE
+#const EFPOS = ENOTRECOVERABLE
 
 const SH_DENYRW = 0x10
 
@@ -3118,7 +3118,7 @@ const SH_DENYRD = 0x30
 
 const SH_DENYNO = 0x40
 
-const _chdir = chdir
+#const _chdir = chdir
 
 const _read = read
 
@@ -3126,41 +3126,41 @@ const _write = write
 
 const _close = close
 
-const _unlink = unlink
+#const _unlink = unlink
 
 const _stat = stat
 
-const _fstat = fstat
+#const _fstat = fstat
 
-const _getcwd = getcwd
+#const _getcwd = getcwd
 
-const _MAX_PATH = PATH_MAX
+#const _MAX_PATH = PATH_MAX
 
-const _MAX_FNAME = NAME_MAX
+#const _MAX_FNAME = NAME_MAX
 
 const _O_BINARY = O_BINARY
 
 const _O_TEXT = 0
 
-const _O_CREAT = O_CREAT
+#const _O_CREAT = O_CREAT
 
-const _O_TRUNC = O_TRUNC
+#const _O_TRUNC = O_TRUNC
 
-const _O_RDWR = O_RDWR
+#const _O_RDWR = O_RDWR
 
-const _O_RDONLY = O_RDONLY
+#const _O_RDONLY = O_RDONLY
 
-const _O_WRONLY = O_WRONLY
+#const _O_WRONLY = O_WRONLY
 
 const _O_SEQUENTIAL = 0
 
-const _S_IREAD = S_IREAD
+#const _S_IREAD = S_IREAD
 
-const _S_IWRITE = S_IWRITE
+#const _S_IWRITE = S_IWRITE
 
-const _S_IEXEC = S_IEXEC
+#const _S_IEXEC = S_IEXEC
 
-const _SH_COMPAT = SH_COMPAT
+#const _SH_COMPAT = SH_COMPAT
 
 const _SH_DENYNO = SH_DENYNO
 
@@ -3174,11 +3174,11 @@ const stdfile_topen = stdfile_open
 
 const stdfile_tgets = stdfile_gets
 
-const stdfile_tprintf = stdfile_printf
+#const stdfile_tprintf = stdfile_printf
 
-const stdout_tprintf = stdout_printf
+#const stdout_tprintf = stdout_printf
 
-const stdfile_tscanf = stdfile_scanf
+#const stdfile_tscanf = stdfile_scanf
 
 # Skipping MacroDefinition: INLINE static __inline__
 
@@ -3190,41 +3190,41 @@ const msg_read_error_message = msg_read_error_messageA
 
 const msg_get_error_message = msg_get_error_messageA
 
-const QSCHED_FIFO = SCHED_FIFO
+#const QSCHED_FIFO = SCHED_FIFO
 
-const QSCHED_RR = SCHED_RR
+#const QSCHED_RR = SCHED_RR
 
-const QSCHED_OTHER = SCHED_OTHER
+#const QSCHED_OTHER = SCHED_OTHER
 
-const SIGBREAK = SIGTERM
+#const SIGBREAK = SIGTERM
 
-const QSIG_BLOCK = SIG_BLOCK
+#const QSIG_BLOCK = SIG_BLOCK
 
-const QSIG_UNBLOCK = SIG_UNBLOCK
+#const QSIG_UNBLOCK = SIG_UNBLOCK
 
-const QSIG_SETMASK = SIG_SETMASK
+#const QSIG_SETMASK = SIG_SETMASK
 
 const MAX_STRING_LENGTH = ~(Cuint(0)) >> 1
 
-const _tstring_format = string_format
+#const _tstring_format = string_format
 
 const QTHREAD_STACK_MIN = 8192
 
-const QTHREAD_INHERIT_SCHED = PTHREAD_INHERIT_SCHED
+#const QTHREAD_INHERIT_SCHED = PTHREAD_INHERIT_SCHED
 
-const QTHREAD_EXPLICIT_SCHED = PTHREAD_EXPLICIT_SCHED
+#const QTHREAD_EXPLICIT_SCHED = PTHREAD_EXPLICIT_SCHED
 
-const QTHREAD_CANCELED = PTHREAD_CANCELED
+#const QTHREAD_CANCELED = PTHREAD_CANCELED
 
 const INVALID_QTHREAD = qthread_t(-1)
 
 const INVALID_QTHREAD_ID = qthread_id_t(-1)
 
-const QTHREAD_ONCE_INIT = PTHREAD_ONCE_INIT
+#const QTHREAD_ONCE_INIT = PTHREAD_ONCE_INIT
 
-const QTHREAD_CANCEL_ENABLE = PTHREAD_CANCEL_ENABLE
+#const QTHREAD_CANCEL_ENABLE = PTHREAD_CANCEL_ENABLE
 
-const QTHREAD_CANCEL_DISABLE = PTHREAD_CANCEL_DISABLE
+#const QTHREAD_CANCEL_DISABLE = PTHREAD_CANCEL_DISABLE
 
 const MAX_TIMEOUT = 9.223372036854776e18
 
