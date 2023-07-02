@@ -227,9 +227,9 @@ isasstable(p::QubeServo)  = false
     const Ts::Float64 = 0.01
     x::X = @SVector zeros(4)
     const ddyn::F = hw.rk4(furuta, Ts; supersample=10)
-    p::P = furuta_parameters()
+    p::P = pendulum_parameters()
     dynamics::D = furuta
-    measurement::M = (x, u, p, t) -> SA[x[1], x[2] - pi]
+    measurement::M = (x, u, p, t) -> SA[x[1], -(x[2] - pi)]
 end
 
 function furuta_parameters(; 
@@ -253,26 +253,72 @@ function measure(p::QubeServoPendulumSimulator4)
     p.measurement(p.x)
 end
 
-function furuta(x, u, p, t)
-    ϕ, θ, ϕ̇, θ̇ = x
-    θ = θ - pi
-    M, l, r, J, Jp, m, g, k = p
-    τ = k*only(u)
-    α = Jp+M*l^2
-    β = J+M*r^2+m*r^2
-    γ = M*r*l
-    ϵ = l*g*(M+m/2)
-    sθ = sin(θ)
-    cθ = cos(θ)
-    C = 1/(α*β+α^2*(sθ)^2-γ^2*cθ^2)
-    scθ = sθ*cθ
-    θ̈ = C*((α*β+α^2*(sθ)^2)*ϕ̇^2*scθ-γ^2*θ̇^2*scθ+2*α*γ*θ̇*ϕ̇*sθ*cθ^2-γ*cθ*τ+(α*β+α^2*(sθ)^2)*ϵ/α*sθ)
-    ϕ̈ = C*(-γ*α*ϕ̇^2*sθ*(cos(θ̇))^2-γ*ϵ*scθ+γ*α*θ̇^2*sθ-2*α^2*θ̇*ϕ̇*scθ+α*τ)
+# function furuta(x, u, p, t)
+#     ϕ, θ, ϕ̇, θ̇ = x
+#     M, l, r, J, Jp, m, g, k = furuta_parameters()
+#     Rm = 8.4
+#     km = 0.042
+#     τ = km*(only(u) - km*ϕ̇) / Rm
+#     α = Jp+M*l^2
+#     β = J+M*r^2+m*r^2
+#     γ = M*r*l
+#     ϵ = l*g*(M+m/2)
+#     sθ = sin(θ)
+#     cθ = cos(θ)
+#     C = 1/(α*β+α^2*(sθ)^2-γ^2*cθ^2)
+#     scθ = sθ*cθ
+#     ϕ̈ = C*(-γ*α*ϕ̇^2*sθ*cθ^2-γ*ϵ*scθ+γ*α*θ̇^2*sθ-2*α^2*θ̇*ϕ̇*scθ+α*τ)
+#     θ̈ = C*((α*β+α^2*(sθ)^2)*ϕ̇^2*scθ-γ^2*θ̇^2*scθ+2*α*γ*θ̇*ϕ̇*sθ*cθ^2-γ*cθ*τ+(α*β+α^2*(sθ)^2)*ϵ/α*sθ)
+#     SA[
+#         ϕ̇
+#         θ̇
+#         ϕ̈ - 4*ϕ̇ # TODO: Tune damping
+#         θ̈ - 1*θ̇
+#     ]
+# end
+
+@fastmath function furuta(x, u, p, t) # Quanser equations
+    θ, α, θ̇, α̇ = x
+
+    Rm, kt, km, mr, r, Jr, br, mp, Lp, l, Jp, bp, g = p
+    Lr = r
+
+    Jr = 5.7e-5
+    Jp = 3.4e-5
+
+    Dp = bp
+    Dr = br
+
+    # Dp = 0.0005
+    # Dr = 0.0015
+
+    τ = km*(only(u) - km*θ̇) / Rm
+    
+    sa = sin(α)
+    ca = cos(α)
+
+    H11 = mp*Lr^2 + 1/4*mp*Lp^2 - 1/4*mp*Lp^2*ca^2 + Jr
+    H21 = 1/2*mp*Lp*Lr*ca
+    H22 = Jp + 1/4*mp*Lp^2
+    H = SA[
+        H11 H21 # The design sheet has -H21 here which does not make sense to me, we expect the mass matrix to be symmetric. We also need + to match the linearized model from the design sheet
+        H21 H22
+    ]
+
+    C = mp*Lp^2*sa*ca*θ̇
+    gr = 1/2*mp*Lp*g*sa
+    G = SA[
+        -1/2*mp*Lp*Lr*sa*α̇^2 + τ - Dr*θ̇
+        -Dp*α̇ - gr
+    ]
+
+
+    xdd = H \ (C * SA[-1/2*α̇; 1/4*θ̇] + G)
     SA[
-        ϕ̇
         θ̇
-        ϕ̈ - 4*ϕ̇ # TODO: Tune damping
-        θ̈ - 100*θ̇
+        α̇
+        xdd[1]
+        xdd[2]
     ]
 end
 
