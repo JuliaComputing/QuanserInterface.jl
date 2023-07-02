@@ -1,7 +1,6 @@
-__precompile__(false)
 module QuanserInterface
 
-export QubeServo, QubeServoPendulum, QubeServoPendulumSimulator4
+export QubeServo, QubeServoPendulum, QubeServoPendulumSimulator
 
 
 using StaticArrays
@@ -9,7 +8,7 @@ using PythonCall
 using HardwareAbstractions
 using ControlSystemsBase
 import HardwareAbstractions as hw
-import HardwareAbstractions: control, measure, num_inputs, num_outputs, inputrange, outputrange, isstable, isasstable, sampletime, bias, initialize, finalize, processtype
+import HardwareAbstractions: control, measure, inputrange, outputrange, isstable, isasstable, sampletime, bias, initialize, finalize, processtype, ninputs, noutputs, nstates
 
 function pendulum_parameters()
     ## Motor
@@ -216,14 +215,14 @@ isasstable(p::QubeServo)  = true # Friction
 end
 
 processtype(::QubeServoPendulum) = PhysicalProcess()
-noutputs(p::QubeServo) = 2
-nstates(p::QubeServo) = 4
-outputrange(p::QubeServo) = [(-10,10), (-pi/2, pi/2)]
-isstable(p::QubeServo)    = false
-isasstable(p::QubeServo)  = false
+noutputs(p::QubeServoPendulum) = 2
+nstates(p::QubeServoPendulum) = 4
+outputrange(p::QubeServoPendulum) = [(-10,10), (-pi/2, pi/2)]
+isstable(p::QubeServoPendulum)    = false
+isasstable(p::QubeServoPendulum)  = false
 
 
-@kwdef mutable struct QubeServoPendulumSimulator4{X, F, P, D, M} <: AbstractQubeServo
+@kwdef mutable struct QubeServoPendulumSimulator{X, F, P, D, M} <: AbstractQubeServo
     const Ts::Float64 = 0.01
     x::X = @SVector zeros(4)
     const ddyn::F = hw.rk4(furuta, Ts; supersample=10)
@@ -247,10 +246,10 @@ function furuta_parameters(;
 end
 
 
-processtype(::QubeServoPendulumSimulator4) = SimulatedProcess()
+processtype(::QubeServoPendulumSimulator) = SimulatedProcess()
 
-function measure(p::QubeServoPendulumSimulator4)
-    p.measurement(p.x)
+function measure(p::QubeServoPendulumSimulator)
+    p.measurement(p.x, 0, p.p, 0)
 end
 
 # function furuta(x, u, p, t)
@@ -323,16 +322,14 @@ end
     ]
 end
 
-function control(p::QubeServoPendulumSimulator4, u)
-    x = p.x
-    xp = p.ddyn(x, u, p.p, 0)
-    p.x = xp
+function control(p::QubeServoPendulumSimulator, u)
+    p.x = p.ddyn(p.x, u, p.p, 0)
     u
 end
 
-control(p::QubeServoPendulumSimulator4, u::Vector{Float64}) = @invoke control(p, u::Any)
+control(p::QubeServoPendulumSimulator, u::Vector{Float64}) = @invoke control(p, u::Any)
 
-initialize(p::QubeServoPendulumSimulator4) = nothing
-finalize(p::QubeServoPendulumSimulator4) = nothing
+initialize(p::QubeServoPendulumSimulator) = nothing
+finalize(p::QubeServoPendulumSimulator) = nothing
 
 end
