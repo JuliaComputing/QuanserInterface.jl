@@ -10,6 +10,9 @@ using ControlSystemsBase
 import HardwareAbstractions as hw
 import HardwareAbstractions: control, measure, inputrange, outputrange, isstable, isasstable, sampletime, bias, initialize, finalize, processtype, ninputs, noutputs, nstates
 
+const HIL = Ref(Py(nothing))
+const card = Ref(Py(nothing))
+
 function pendulum_parameters()
     ## Motor
     # Resistance
@@ -122,11 +125,22 @@ function load_default_backend(;
     encoder_read_buffer::Vector{Int32},
     analog_read_buffer::Vector{Int32},
 )
-    sys = pyimport("sys")
-    sys.path.append("/home/fredrikb/quanser")
-    HIL = pyimport("quanser.hardware" => "HIL")
+    if HIL[] === Py(nothing)
+        @info "Loading quanser Python module"
+        sys = pyimport("sys")
+        sys.path.append("/home/fredrikb/quanser")
+        HIL[] = pyimport("quanser.hardware" => "HIL")
+    end
+    if card[] !== Py(nothing)
+        # If already loaded, close first
+        @info "Closing previous HIL card"
+        card[].close()
+        sleep(0.1)
+    end
+    @info "Loading HIL card"
+    card[] = try_twice(()->HIL[]("qube_servo3_usb", "0"))
     PythonBackend(
-        try_twice(()->HIL("qube_servo3_usb", "0")),
+        card[],
         digital_channel_write,
         encoder_channel,
         analog_channel_write,
@@ -228,7 +242,7 @@ isasstable(p::QubeServoPendulum)  = false
     const ddyn::F = hw.rk4(furuta, Ts; supersample=10)
     p::P = pendulum_parameters()
     dynamics::D = furuta
-    measurement::M = (x, u, p, t) -> SA[x[1], (x[2] - pi)]
+    measurement::M = (x, u, p, t) -> SA[x[1], (x[2] - 0*pi)]
 end
 
 function furuta_parameters(; 
@@ -286,8 +300,8 @@ end
     Jr = 5.7e-5
     Jp = 3.4e-5
 
-    Dp = bp
-    Dr = br
+    Dp = 0.1*bp
+    Dr = 0.1br
 
     # Dp = 0.0005
     # Dr = 0.0015
