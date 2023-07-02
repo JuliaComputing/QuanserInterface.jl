@@ -216,7 +216,18 @@ end
 #     simplot(model, d)
 # )
 ##
-using RobustAndOptimalControl
 
+psim = QubeServoPendulumSimulator3()
+psim.x = SA[0, 0.5pi, 0.0, 0]
 
+function nullcontroller(args...)
+    u, xh = controller(args...)
+    0*u, xh
+end
 
+D = balance_demo(psim; u_max=8, Tf = 3, controller = nullcontroller)
+
+using JuliaSimControl
+Afu, Bfu = JuliaSimControl.linearize(QuanserInterface.furuta, zeros(4), [0], psim.p, 0)
+
+plotD(D)

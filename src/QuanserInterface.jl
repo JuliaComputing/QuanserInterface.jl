@@ -1,7 +1,7 @@
 __precompile__(false)
 module QuanserInterface
 
-export QubeServo, QubeServoPendulum
+export QubeServo, QubeServoPendulum, QubeServoPendulumSimulator4
 
 
 using StaticArrays
@@ -221,5 +221,71 @@ nstates(p::QubeServo) = 4
 outputrange(p::QubeServo) = [(-10,10), (-pi/2, pi/2)]
 isstable(p::QubeServo)    = false
 isasstable(p::QubeServo)  = false
+
+
+@kwdef mutable struct QubeServoPendulumSimulator4{X, F, P, D, M} <: AbstractQubeServo
+    const Ts::Float64 = 0.01
+    x::X = @SVector zeros(4)
+    const ddyn::F = hw.rk4(furuta, Ts; supersample=10)
+    p::P = furuta_parameters()
+    dynamics::D = furuta
+    measurement::M = (x, u, p, t) -> SA[x[1], x[2] - pi]
+end
+
+function furuta_parameters(; 
+        m = 0.024,
+        mr = 0.095,
+        l = 0.129,
+        M = 0.001,
+        r = 0.085,
+        Jp = mr*r^2/3,
+        J = m*l^2/3,
+        g = 9.82,
+        k = 0.005, # Motor gain
+    ) 
+    p = (; M, l, r, J, Jp, m, g, k)
+end
+
+
+processtype(::QubeServoPendulumSimulator4) = SimulatedProcess()
+
+function measure(p::QubeServoPendulumSimulator4)
+    p.measurement(p.x)
+end
+
+function furuta(x, u, p, t)
+    ϕ, θ, ϕ̇, θ̇ = x
+    θ = θ - pi
+    M, l, r, J, Jp, m, g, k = p
+    τ = k*only(u)
+    α = Jp+M*l^2
+    β = J+M*r^2+m*r^2
+    γ = M*r*l
+    ϵ = l*g*(M+m/2)
+    sθ = sin(θ)
+    cθ = cos(θ)
+    C = 1/(α*β+α^2*(sθ)^2-γ^2*cθ^2)
+    scθ = sθ*cθ
+    θ̈ = C*((α*β+α^2*(sθ)^2)*ϕ̇^2*scθ-γ^2*θ̇^2*scθ+2*α*γ*θ̇*ϕ̇*sθ*cθ^2-γ*cθ*τ+(α*β+α^2*(sθ)^2)*ϵ/α*sθ)
+    ϕ̈ = C*(-γ*α*ϕ̇^2*sθ*(cos(θ̇))^2-γ*ϵ*scθ+γ*α*θ̇^2*sθ-2*α^2*θ̇*ϕ̇*scθ+α*τ)
+    SA[
+        ϕ̇
+        θ̇
+        ϕ̈ - 4*ϕ̇ # TODO: Tune damping
+        θ̈ - 100*θ̇
+    ]
+end
+
+function control(p::QubeServoPendulumSimulator4, u)
+    x = p.x
+    xp = p.ddyn(x, u, p.p, 0)
+    p.x = xp
+    u
+end
+
+control(p::QubeServoPendulumSimulator4, u::Vector{Float64}) = @invoke control(p, u::Any)
+
+initialize(p::QubeServoPendulumSimulator4) = nothing
+finalize(p::QubeServoPendulumSimulator4) = nothing
 
 end
