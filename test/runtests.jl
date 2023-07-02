@@ -66,14 +66,16 @@ fig
 # ==============================================================================
 ## Pendulum
 # ==============================================================================
-using ControlSystemsBase
+using ControlSystemsBase, QuanserInterface, RobustAndOptimalControl
+measure = QuanserInterface.measure
 normalize_angles(x::Number) = mod(x+pi, 2pi)-pi
 normalize_angles(x::AbstractVector) = SA[normalize_angles(x[1]), normalize_angles(x[2]), x[3], x[4], x[5]]
 
-p = QubeServoPendulum()
+p = QubeServoPendulum(; Ts = 0.005)
 
-sys = ss(QuanserInterface.linearized_pendulum()...)
-sysaug = add_measurement_disturbance(sys, [-1e-8;;], [1; 0;;])
+sys = QuanserInterface.linearized_pendulum()
+sysaug = add_measurement_disturbance(sys, [-1e-8;;], [0; 1;;])
+# sysaug = add_low_frequency_disturbance(sys, 1, ϵ = 1e-8)
 sysd = c2d(sysaug, p.Ts)
 
 Q1 = Diagonal([100000, 0.1, 100, 1, 0])
@@ -114,7 +116,7 @@ x0 = SA[0, 0.0, 0, 0.0, 0]
 function controller(u, y, obsfilter)
     θ = y[2] - pi
     xh = obsfilter([u; y[1]; θ])
-    int_th = deg2rad(2)
+    int_th = deg2rad(20)
     obsfilter.state[end] = clamp(obsfilter.state[end], -int_th, int_th)
     xh[end] = clamp(xh[end], -int_th, int_th)
     @show size(xh)
@@ -133,6 +135,7 @@ end
 function balance_demo(p; 
     u_max = 2.0,
     Tf = 10,
+    controller = controller,
 )
 
     initialize(p)
@@ -169,27 +172,21 @@ function balance_demo(p;
     end
 
     D = reduce(hcat, data)
-    # ti = 1; yi = 2; ui = 3; ri = 4; ei = 5;
-    # tvec = D[ti, :]
-    # fig = plot(tvec, D[yi, :], layout=2, lab="y")
-    # plot!(tvec, D[ri, :], lab="r", sp=1)
-    # plot!(tvec, D[ei, :], lab="e", sp=1)
-    # plot!(tvec, D[ui, :], lab="u", sp=2)
-    # finalize(p)
-    # (; D, fig)
 end
 ##0
-D = balance_demo(p; u_max=15, Tf = 16)
+D = balance_demo(p; u_max=8, Tf = 20)
 
-tvec = D[1, :]
-y = D[2:3, :]'
-y[:, 2] .-= pi
-xh = D[4:8, :]'
-u = D[9, :]
-plot(tvec, xh, layout=6)
-plot!(tvec, y, sp=[1 2])
-plot!(tvec, u, sp=6, lab="u")
-
+function plotD(D)
+    tvec = D[1, :]
+    y = D[2:3, :]'
+    # y[:, 2] .-= pi
+    xh = D[4:8, :]'
+    u = D[9, :]
+    plot(tvec, xh, layout=6)
+    plot!(tvec, y, sp=[1 2])
+    plot!(tvec, u, sp=6, lab="u")
+end
+plotD(D)
 ##
 x0 = zeros(sysd.nx)
 obsfilter = SysFilter(obs, copy(x0))

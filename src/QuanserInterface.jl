@@ -7,7 +7,9 @@ export QubeServo, QubeServoPendulum
 using StaticArrays
 using PythonCall
 using HardwareAbstractions
-import HardwareAbstractions: control, measure, num_inputs, num_outputs, inputrange, outputrange, isstable, isasstable, sampletime, bias, initialize, finalize
+using ControlSystemsBase
+import HardwareAbstractions as hw
+import HardwareAbstractions: control, measure, num_inputs, num_outputs, inputrange, outputrange, isstable, isasstable, sampletime, bias, initialize, finalize, processtype
 
 function pendulum_parameters()
     ## Motor
@@ -44,8 +46,8 @@ function pendulum_parameters()
     (; Rm, kt, km, mr, r, Jr, br, mp, Lp, l, Jp, bp, g)
 end
 
-function linearized_pendulum()
-    (; Rm, kt, km, mr, r, Jr, br, mp, Lp, l, Jp, bp, g) = pendulum_parameters()
+function linearized_pendulum(p = pendulum_parameters())
+    (; Rm, kt, km, mr, r, Jr, br, mp, Lp, l, Jp, bp, g) = p
     # Find Total Inertia
     Jt = Jr*Jp - mp^2*r^2*l^2
     # 
@@ -63,7 +65,7 @@ function linearized_pendulum()
     A[3,3] -= km*km/Rm*B[3]
     A[4,3] -= km*km/Rm*B[4]
     B = km * B / Rm
-    (; A, B, C, D)
+    ss(A, B, C, D)
 end
 
 
@@ -148,7 +150,7 @@ function try_twice(f)
             try
                 return f()
             catch
-                @error "Failed twice, is the device on or did you forget to call finalize?"
+                @error "Failed twice, is the device power off, or did you forget to call finalize?"
                 rethrow()
             end
         else
@@ -162,7 +164,7 @@ end
 ## QubeServo
 # ==============================================================================
 
-abstract type AbstractQubeServo <: PhysicalProcess end
+abstract type AbstractQubeServo <: AbstractProcess end
 @kwdef struct QubeServo{B <: QuanserBackend} <: AbstractQubeServo
     Ts::Float64 = 0.01
     backend::B  = load_default_backend(
@@ -175,10 +177,10 @@ abstract type AbstractQubeServo <: PhysicalProcess end
     )
 end
 
-
+processtype(::QubeServo) = PhysicalProcess()
 control(p::AbstractQubeServo, u::Vector{Float64}) = control(p.backend, u)
 control(p::AbstractQubeServo, u::Number) = control(p, [u])
-num_inputs(p::AbstractQubeServo)  = 1
+ninputs(p::AbstractQubeServo)  = 1
 inputrange(p::AbstractQubeServo)  = [(-10,10)]
 finalize(p::AbstractQubeServo) = finalize(p.backend)
 initialize(p::AbstractQubeServo) = initialize(p.backend)
@@ -190,7 +192,8 @@ function measure(p::AbstractQubeServo)
     y .* 2pi / 2048 # radians
 end
 
-num_outputs(p::QubeServo) = 1
+noutputs(p::QubeServo) = 1
+nstates(p::QubeServo) = 2
 outputrange(p::QubeServo) = [(-10,10)]
 isstable(p::QubeServo)    = true
 isasstable(p::QubeServo)  = true # Friction
@@ -212,9 +215,11 @@ isasstable(p::QubeServo)  = true # Friction
     )
 end
 
-num_outputs(p::QubeServo) = 2
+processtype(::QubeServoPendulum) = PhysicalProcess()
+noutputs(p::QubeServo) = 2
+nstates(p::QubeServo) = 4
 outputrange(p::QubeServo) = [(-10,10), (-pi/2, pi/2)]
 isstable(p::QubeServo)    = false
-isasstable(p::QubeServo)  = false 
+isasstable(p::QubeServo)  = false
 
 end
