@@ -124,7 +124,7 @@ const t_card = Ptr{tag_card}
 const t_int = Cint
 
 const t_error = t_int
-
+const hil_sdk = "/opt/quanser/lib/libhil.dylib"
 function hil_open(card_type, card_identifier, card)
     ccall((:hil_open, hil_sdk), t_error, (Ptr{Cchar}, Ptr{Cchar}, Ptr{t_card}), card_type, card_identifier, card)
 end
