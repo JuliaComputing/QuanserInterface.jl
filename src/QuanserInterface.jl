@@ -1,7 +1,7 @@
 module QuanserInterface
 
 export QubeServo, QubeServoPendulum, QubeServoPendulumSimulator
-
+export home_arm!, home_pend!, home!
 
 using StaticArrays
 using PythonCall
@@ -9,6 +9,7 @@ using HardwareAbstractions
 using ControlSystemsBase
 import HardwareAbstractions as hw
 import HardwareAbstractions: control, measure, inputrange, outputrange, isstable, isasstable, sampletime, bias, initialize, finalize, processtype, ninputs, noutputs, nstates
+
 
 const HIL = Ref(Py(nothing))
 const card = Ref(Py(nothing))
@@ -226,14 +227,42 @@ isasstable(p::QubeServo)  = true # Friction
         encoder_read_buffer   = zeros(Int32, 2),
         analog_read_buffer    = zeros(Int32, 0),
     )
+    left_flange::Base.RefValue{Float64} = Ref(0.0)
+    downward::Base.RefValue{Float64} = Ref(0.0)
 end
 
 processtype(::QubeServoPendulum) = PhysicalProcess()
 noutputs(p::QubeServoPendulum) = 2
 nstates(p::QubeServoPendulum) = 4
-outputrange(p::QubeServoPendulum) = [(-10,10), (-pi/2, pi/2)]
 isstable(p::QubeServoPendulum)    = false
 isasstable(p::QubeServoPendulum)  = false
+function home_arm!(p::QubeServoPendulum)
+    ybits = measure(p.backend)[1]
+    y = ybits * 2pi / 2048 # radians
+    @info "Homing arm"
+    p.left_flange[] = y
+end
+
+function home_pend!(p::QubeServoPendulum)
+    ybits = measure(p.backend)[2]
+    y = ybits * 2pi / 2048 # radians
+    @info "Homing pendulum"
+    p.downward[] = y
+end
+
+function home!(p::QubeServoPendulum)
+    home_arm!(p)
+    home_pend!(p)
+    nothing
+end
+
+function measure(p::QubeServoPendulum)
+    ybits = measure(p.backend)
+    y = ybits .* 2pi / 2048 # radians
+    y[1] = y[1] - p.left_flange[] + deg2rad(137)
+    y[2] = y[2] - p.downward[]
+    y
+end
 
 
 @kwdef mutable struct QubeServoPendulumSimulator{X, F, P, D, M} <: AbstractQubeServo
@@ -345,5 +374,51 @@ control(p::QubeServoPendulumSimulator, u::Vector{Float64}) = @invoke control(p, 
 
 initialize(p::QubeServoPendulumSimulator) = nothing
 finalize(p::QubeServoPendulumSimulator) = nothing
+
+"""
+    go_home(process; th = 10, r = 0, Ki = 0)
+
+Go to r using a P controller
+
+# Arguments:
+- `th`: Max control
+- `r`: Reference position
+- `Ki`: Integral gain (set to 0.15 or something like that if you are using the inertia disc)
+"""
+function go_home(process; th=5, r = 0, K = 0.8, Ki=process isa QubeServoPendulum ? 0.0 : 0.15)
+    Ts = process.Ts
+    count = 0
+    int = 0.0
+    yo = 0.0
+    initialize(process)
+    while true
+        @periodically Ts begin
+            y = measure(process)[1]
+            dy = (y - yo) / Ts
+            yo = y
+            e = r-y
+            if abs(e) < deg2rad(5) && abs(dy) < deg2rad(3)
+                count += 1
+                if count > 20
+                    break
+                end
+            else
+                count = 0
+            end
+             # V / rad
+            u0 = K*e + Ki*int
+            if -th <= u0 <= th
+                int += Ki*e
+            end
+            u = clamp(u0, -th, th)
+            @show u, y
+            control(process, [u])
+        end
+    end
+    # control(process, [0.0])
+end
+
+const Lup = SA[-7.8038045417791615 -38.734485788275485 -2.387482462896501 -3.285300064621874]
+const Ldown = SA[8.59053220448398 -1.3750742576909472 0.7557495972343583 -0.2008266766259501]
 
 end
