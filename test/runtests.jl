@@ -10,7 +10,7 @@ function chirp_demo(p;
     u_max = 10.0,
 )
     initialize(p)
-    Ts = sampletime(p)
+    Ts = p.Ts
     N = round(Int, Tf/Ts)
     data = Vector{SVector{5, Float64}}(undef, 0)
     sizehint!(data, N)
@@ -60,8 +60,14 @@ p = QubeServo()
 #     display(plot(reduce(hcat, data)'))
 # end
 
-# D, fig = chirp_demo(p; Tf = 10)
-# fig
+D, fig = chirp_demo(p; Tf = 10)
+fig
+##
+using ControlSystemIdentification, ControlSystemsBase, Plots
+d = iddata(D[2,:], D[3, :], p.Ts)
+model = arx(d, 2, 2)
+velmodel = tf([1, -1], [p.Ts, 0], p.Ts)*model
+bodeplot([model, velmodel])
 
 # ==============================================================================
 ## Pendulum
@@ -264,16 +270,7 @@ velfilt2 = c2d(ss(tf([50, 0], [1, 50])), p.Ts, :tustin) |> SysFilter
 gmffilt = SysFilter(Cgmf)
 #
 
-function energy(θ, θ̇)
-    mp = 0.024
-    Lp = 0.129
-    l = Lp/2
-    Jp = mp*Lp^2/3
-    Jp_cm = mp*Lp^2/12
-    g = 9.81
-    θ = θ + pi
-    E = 1/2*Jp_cm*θ̇^2 + mp*g*l*(1-cos(θ))
-end
+using QuanserInterface: energy
 
 function controller(u, y, obsfilter)
     θ = y[2] - pi

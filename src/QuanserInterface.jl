@@ -382,7 +382,7 @@ function go_home(process; th=5, r = 0, K = 0.2, Ki=0.15, Kf = 0.1)
             dy = (y - yo) / Ts
             yo = y
             e = r-y
-            if abs(e) < deg2rad(5) && abs(dy) < deg2rad(3)
+            if abs(e) < deg2rad(10) && abs(dy) < deg2rad(4)
                 count += 1
                 if count > 20
                     break
@@ -405,5 +405,16 @@ end
 
 const Lup = SA[-7.8038045417791615 -38.734485788275485 -2.387482462896501 -3.285300064621874]
 const Ldown = SA[8.59053220448398 -1.3750742576909472 0.7557495972343583 -0.2008266766259501]
+
+function energy(θ, θ̇)
+    mp = 0.024
+    Lp = 0.129
+    l = Lp/2
+    Jp = mp*Lp^2/3
+    Jp_cm = mp*Lp^2/12
+    g = 9.81
+    θ = θ + pi
+    E = 1/2*Jp_cm*θ̇^2 + mp*g*l*(1-cos(θ))
+end
 
 end
