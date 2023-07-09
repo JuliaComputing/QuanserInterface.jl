@@ -236,11 +236,13 @@ noutputs(p::QubeServoPendulum) = 2
 nstates(p::QubeServoPendulum) = 4
 isstable(p::QubeServoPendulum)    = false
 isasstable(p::QubeServoPendulum)  = false
-function home_arm!(p::QubeServoPendulum)
+function home_arm!(p::QubeServoPendulum, ang=137)
+    control(p, [0.0])
+    sleep(0.1)
     ybits = measure(p.backend)[1]
     y = ybits * 2pi / 2048 # radians
     @info "Homing arm"
-    p.left_flange[] = y
+    p.left_flange[] = y + deg2rad(137-ang)
 end
 
 function home_pend!(p::QubeServoPendulum)
@@ -250,8 +252,8 @@ function home_pend!(p::QubeServoPendulum)
     p.downward[] = y
 end
 
-function home!(p::QubeServoPendulum)
-    home_arm!(p)
+function home!(p::QubeServoPendulum, args...)
+    home_arm!(p, args...)
     home_pend!(p)
     nothing
 end
@@ -295,33 +297,9 @@ function measure(p::QubeServoPendulumSimulator)
     p.measurement(p.x, 0, p.p, 0)
 end
 
-# function furuta(x, u, p, t)
-#     ϕ, θ, ϕ̇, θ̇ = x
-#     M, l, r, J, Jp, m, g, k = furuta_parameters()
-#     Rm = 8.4
-#     km = 0.042
-#     τ = km*(only(u) - km*ϕ̇) / Rm
-#     α = Jp+M*l^2
-#     β = J+M*r^2+m*r^2
-#     γ = M*r*l
-#     ϵ = l*g*(M+m/2)
-#     sθ = sin(θ)
-#     cθ = cos(θ)
-#     C = 1/(α*β+α^2*(sθ)^2-γ^2*cθ^2)
-#     scθ = sθ*cθ
-#     ϕ̈ = C*(-γ*α*ϕ̇^2*sθ*cθ^2-γ*ϵ*scθ+γ*α*θ̇^2*sθ-2*α^2*θ̇*ϕ̇*scθ+α*τ)
-#     θ̈ = C*((α*β+α^2*(sθ)^2)*ϕ̇^2*scθ-γ^2*θ̇^2*scθ+2*α*γ*θ̇*ϕ̇*sθ*cθ^2-γ*cθ*τ+(α*β+α^2*(sθ)^2)*ϵ/α*sθ)
-#     SA[
-#         ϕ̇
-#         θ̇
-#         ϕ̈ - 4*ϕ̇ # TODO: Tune damping
-#         θ̈ - 1*θ̇
-#     ]
-# end
-
-@fastmath function furuta(x, u, p, t) # Quanser equations
-    θ, α, θ̇, α̇ = x
-    α = pi-α
+function furuta(x, u, p, t) # Quanser equations
+    θ, α0, θ̇, α̇ = x
+    α = float(pi)-α0
 
     Rm, kt, km, mr, r, Jr, br, mp, Lp, l, Jp, bp, g = p
     Lr = r
@@ -329,8 +307,8 @@ end
     Jr = 5.7e-5
     Jp = 3.4e-5
 
-    Dp = 0.1*bp
-    Dr = 0.1br
+    Dp = 0.05*bp
+    Dr = 0.05*br
 
     # Dp = 0.0005
     # Dr = 0.0015
@@ -355,8 +333,12 @@ end
         -Dp*α̇ - gr
     ]
 
-
-    xdd = H \ (C * SA[-1/2*α̇; 1/4*θ̇] + G)
+    if eltype(x) <: Real
+        xdd = H \ (C * SA[-1/2*α̇; 1/4*θ̇] + G)
+    else
+        den = (H[1, 1]*H[2, 2] - H[1, 2]*H[2, 1])
+        xdd = [H[2,2] -H[1,2]; -H[2,1] H[1,1]] * (C * SA[-1/2*α̇; 1/4*θ̇] + G)  ./ den
+    end
     SA[
         θ̇
         α̇
@@ -385,14 +367,17 @@ Go to r using a P controller
 - `r`: Reference position
 - `Ki`: Integral gain (set to 0.15 or something like that if you are using the inertia disc)
 """
-function go_home(process; th=5, r = 0, K = 0.8, Ki=process isa QubeServoPendulum ? 0.0 : 0.15)
+function go_home(process; th=5, r = 0, K = 0.2, Ki=0.15, Kf = 0.1)
     Ts = process.Ts
     count = 0
     int = 0.0
     yo = 0.0
     initialize(process)
+    local u
+    i = 0
     while true
         @periodically Ts begin
+            i += 1
             y = measure(process)[1]
             dy = (y - yo) / Ts
             yo = y
@@ -406,16 +391,16 @@ function go_home(process; th=5, r = 0, K = 0.8, Ki=process isa QubeServoPendulum
                 count = 0
             end
              # V / rad
-            u0 = K*e + Ki*int
+            u0 = K*e + int + Kf*sign(e) # friction compensation
             if -th <= u0 <= th
-                int += Ki*e
+                int += Ki*e*Ts
             end
             u = clamp(u0, -th, th)
             @show u, y
-            control(process, [u])
+            control(process, [u + (i % 2 == 0 ? 0.01 : -0.01)]) # add dither
         end
     end
-    # control(process, [0.0])
+    u
 end
 
 const Lup = SA[-7.8038045417791615 -38.734485788275485 -2.387482462896501 -3.285300064621874]
