@@ -276,21 +276,6 @@ end
     measurement::M = (x, u, p, t) -> SA[x[1], x[2]]
 end
 
-function furuta_parameters(; 
-        m = 0.024,
-        mr = 0.095,
-        l = 0.129,
-        M = 0.001,
-        r = 0.085,
-        Jp = mr*r^2/3,
-        J = m*l^2/3,
-        g = 9.82,
-        k = 0.005, # Motor gain
-    ) 
-    p = (; M, l, r, J, Jp, m, g, k)
-end
-
-
 processtype(::QubeServoPendulumSimulator) = SimulatedProcess()
 
 function measure(p::QubeServoPendulumSimulator)
@@ -406,15 +391,15 @@ end
 const Lup = SA[-7.8038045417791615 -38.734485788275485 -2.387482462896501 -3.285300064621874]
 const Ldown = SA[8.59053220448398 -1.3750742576909472 0.7557495972343583 -0.2008266766259501]
 
-function energy(θ, θ̇)
+energy(x::AbstractVector) = energy(x[2], x[4])
+function energy(α, α̇)
     mp = 0.024
     Lp = 0.129
+    g = 9.81
     l = Lp/2
     Jp = mp*Lp^2/3
     Jp_cm = mp*Lp^2/12
-    g = 9.81
-    θ = θ + pi
-    E = 1/2*Jp_cm*θ̇^2 + mp*g*l*(1-cos(θ))
+    E = 1/2*Jp_cm*α̇^2 + mp*g*l*(1+cos(α))
 end
 
 end

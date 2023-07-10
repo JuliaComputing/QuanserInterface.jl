@@ -6,6 +6,8 @@ version = "1.0.0-DEV"
 [deps]
 ControlSystemIdentification = "3abffc1c-5106-53b7-b354-a47bfc086282"
 ControlSystemsBase = "aaaaaaaa-a6ca-5380-bf3e-84a91bcd477e"
+DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
+DiscretePIDs = "c1363496-6848-4723-8758-079b737f6baf"
 HardwareAbstractions = "9ac91abb-62f4-42c0-88e8-83732e93d543"
 PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
