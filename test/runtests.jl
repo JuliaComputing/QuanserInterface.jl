@@ -28,8 +28,6 @@ psim = QubeServoPendulumSimulator(; Ts)
 include("../examples/furuta_lqg.jl")
 
 ##
-velfilt1 = c2d(ss(tf([50, 0], [1, 50])), Ts, :tustin) |> SysFilter
-velfilt2 = c2d(ss(tf([50, 0], [1, 50])), Ts, :tustin) |> SysFilter
 # gmffilt = SysFilter(Cgmf)
 #
 

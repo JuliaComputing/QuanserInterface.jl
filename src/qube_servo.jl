@@ -137,6 +137,13 @@ noutputs(p::QubeServoPendulum) = 2
 nstates(p::QubeServoPendulum) = 4
 isstable(p::QubeServoPendulum)    = false
 isasstable(p::QubeServoPendulum)  = false
+
+
+"""
+    home_arm!(p::QubeServoPendulum, ang = 137)
+
+Set the current angle to `ang` degrees. The default value is when the arm is to the far left end stop.
+"""
 function home_arm!(p::QubeServoPendulum, ang=137)
     control(p, [0.0])
     sleep(0.1)
@@ -274,13 +281,13 @@ function go_home(process; th=5, r = 0, K = 0.2, Ki=0.15, Kf = 0.1)
                 count = 0
             end
              # V / rad
-            u0 = K*e + int + Kf*sign(e) # friction compensation
-            if -th <= u0 <= th
+            u0 = K*e + int + Kf*sign(e) # PI controller + Coulomb friction compensation
+            if -th <= u0 <= th # Conditional integration for anti-windup
                 int += Ki*e*Ts
             end
             u = clamp(u0, -th, th)
             @show u, y
-            control(process, [u + (i % 2 == 0 ? 0.01 : -0.01)]) # add dither
+            control(process, [u + (i % 2 == 0 ? 0.01 : -0.01)]) # add dither to break static friction
         end
     end
     u
