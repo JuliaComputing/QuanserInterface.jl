@@ -10,6 +10,19 @@ This repo contains a Julia interface to the Quanser hardware-in-the-loop (HIL) S
 2. To use the `PythonBackend` Install Quanser python packages as described [here](https://docs.quanser.com/quarc/documentation/python/installation.html)
 3. To use the C backend, implement the C backend
 
+### Setting preferences
+Preferences.jl is used to store the path to the python HIL SDK as well as the default board type. You can set these preferences by running
+```julia
+QuanserInterface.set_quanser_python_path(path)
+QuanserInterface.set_board(board)
+```
+
+The defaults if none are set are equivalent to
+```julia
+QuanserInterface.set_quanser_python_path("~/quanser")
+QuanserInterface.set_board("qube_servo3_usb")
+```
+
 ## Supported devices
 The currently supported devices are
 - Qube-Servo 3 with pendulum or inertia disc attachment

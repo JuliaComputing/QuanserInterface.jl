@@ -11,6 +11,24 @@ using ControlSystemsBase
 import HardwareAbstractions as hw
 import HardwareAbstractions: control, measure, inputrange, outputrange, isstable, isasstable, sampletime, bias, initialize, finalize, processtype, ninputs, noutputs, nstates
 import LowLevelParticleFilters as llpf
+using Preferences
+
+
+function set_quanser_python_path(path)
+    @set_preferences!("python_path" => path)
+end
+
+function get_quanser_python_path()
+    @load_preference("python_path", "~/quanser")
+end
+
+function set_board(board)
+    @set_preferences!("board" => board)
+end
+
+function get_board()
+    @load_preference("board", "qube_servo3_usb")
+end
 
 
 const HIL = Ref(Py(nothing))
@@ -149,7 +167,8 @@ function load_default_backend(;
     if HIL[] === Py(nothing)
         @info "Loading quanser Python module"
         sys = pyimport("sys")
-        sys.path.append("/home/fredrikb/quanser")
+
+        sys.path.append(get_quanser_python_path())
         HIL[] = pyimport("quanser.hardware" => "HIL")
     end
     if card[] !== Py(nothing)
@@ -159,6 +178,7 @@ function load_default_backend(;
         sleep(0.1)
     end
     @info "Loading HIL card"
+    board = get_board()
     card[] = try_twice(()->HIL[]("qube_servo3_usb", "0"))
     PythonBackend(
         card[],
