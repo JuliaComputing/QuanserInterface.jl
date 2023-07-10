@@ -3,50 +3,70 @@ module QuanserInterface
 export QubeServo, QubeServoPendulum, QubeServoPendulumSimulator
 export home_arm!, home_pend!, home!
 
+using LinearAlgebra
 using StaticArrays
 using PythonCall
 using HardwareAbstractions
 using ControlSystemsBase
 import HardwareAbstractions as hw
 import HardwareAbstractions: control, measure, inputrange, outputrange, isstable, isasstable, sampletime, bias, initialize, finalize, processtype, ninputs, noutputs, nstates
+import LowLevelParticleFilters as llpf
 
 
 const HIL = Ref(Py(nothing))
 const card = Ref(Py(nothing))
 
-function pendulum_parameters()
-    ## Motor
-    # Resistance
-    Rm = 8.4
-    # Current-torque (N-m/A)
-    kt = 0.042
-    # Back-emf constant (V-s/rad)
-    km = 0.042
-    #
-    ## Rotary Arm
-    # Mass (kg)
-    mr = 0.095
-    # Total length (m)
-    r = 0.085
-    # Moment of inertia about pivot (kg-m^2)
-    Jr = mr*r^2/3
-    # Equivalent Viscous Damping Coefficient (N-m-s/rad)
-    br = 1e-3 # damping tuned heuristically to match QUBE-Sero 2 response
-    #
-    ## Pendulum Link
-    # Mass (kg)
-    mp = 0.024
-    # Total length (m)
-    Lp = 0.129
-    # Pendulum center of mass (m)
-    l = Lp/2
-    # Moment of inertia about pivot (kg-m^2)
-    Jp = mp*Lp^2/3
-    # Equivalent Viscous Damping Coefficient (N-m-s/rad)
-    bp = 5e-5 # damping tuned heuristically to match QUBE-Sero 2 response
-    # Gravity Constant
-    g = 9.81
-    (; Rm, kt, km, mr, r, Jr, br, mp, Lp, l, Jp, bp, g)
+"""
+    pendulum_parameters(optimized = false)
+
+Return a named tuple with the default or `optimized` parameters. The optimized parameters have been estimated using maximum-likelihood estimation with an `LowLevelParticleFilters.UnscentedKalmanFilter`, see example `pendulum_identification.jl`.
+"""
+function pendulum_parameters(optimized = false)
+    if optimized
+        (Rm = 3.7282272826905714, kt = 0.042, km = 0.061043535870362514, mr = 0.095, r = 0.0770658109812201, Jr = 1.112300869775737e-5, br = 4.8938205931891925e-5, mp = 0.11572907399113673, Lp = 0.08108254471783813, l = 0.0645, Jp = 0.00019808351489259391, bp = 3.250070828840098e-6, g = 9.81)
+    else
+        ## Motor
+        # Resistance
+        Rm = 8.4
+        # Current-torque (N-m/A)
+        kt = 0.042
+        # Back-emf constant (V-s/rad)
+        km = 0.042
+        #
+        ## Rotary Arm
+        # Mass (kg)
+        mr = 0.095
+        # Total length (m)
+        r = 0.085
+        # Moment of inertia about pivot (kg-m^2)
+        Jr = mr*r^2/3
+        # Equivalent Viscous Damping Coefficient (N-m-s/rad)
+        br = 0.05*1e-3 # damping tuned heuristically to match QUBE-Sero 2 response
+        #
+        ## Pendulum Link
+        # Mass (kg)
+        mp = 0.024
+        # Total length (m)
+        Lp = 0.129
+        # Pendulum center of mass (m)
+        l = Lp/2
+        # Moment of inertia about pivot (kg-m^2)
+        Jp = mp*Lp^2/3
+        # Equivalent Viscous Damping Coefficient (N-m-s/rad)
+        bp = 0.05*5e-5 # damping tuned heuristically to match QUBE-Sero 2 response
+        # Gravity Constant
+        g = 9.81
+        (; Rm, kt, km, mr, r, Jr, br, mp, Lp, l, Jp, bp, g)
+    end
+end
+
+function optimized_UKF(psim)
+    psim.Ts == 0.01 || error("The UKF was estimated for Ts = 0.01, to estimate parameters for a different sample rate, collect some data and make use of `examples/pendulum_identification.jl`")
+    R1 = kron(llpf.double_integrator_covariance(Ts, 1), diagm([556, 965])) + 1e-9I
+    p = pendulum_parameters(optimized=true)
+    R2 = 2pi/2048 * I(2)
+    d0 = llpf.MvNormal(psim.x, 10R1)
+    kfoptRf = llpf.UnscentedKalmanFilter(psim.ddyn, psim.measurement, R1, R2, d0; ny, nu, p)
 end
 
 function linearized_pendulum(p = pendulum_parameters())
@@ -289,14 +309,11 @@ function furuta(x, u, p, t) # Quanser equations
     Rm, kt, km, mr, r, Jr, br, mp, Lp, l, Jp, bp, g = p
     Lr = r
 
-    Jr = 5.7e-5
-    Jp = 3.4e-5
+    # Jr = 5.7e-5
+    # Jp = 3.4e-5
 
-    Dp = 0.05*bp
-    Dr = 0.05*br
-
-    # Dp = 0.0005
-    # Dr = 0.0015
+    Dp = bp
+    Dr = br
 
     τ = km*(only(u) - km*θ̇) / Rm
     
