@@ -14,20 +14,46 @@ import LowLevelParticleFilters as llpf
 using Preferences
 
 
+"""
+    set_quanser_python_path(path)
+
+Set the path to the Quanser python HIL interface, the default if none is set is `~/quanser`.
+"""
 function set_quanser_python_path(path)
     @set_preferences!("python_path" => path)
+    @info("New python path set; restart your Julia session for this change to take effect!")
 end
 
 function get_quanser_python_path()
     @load_preference("python_path", "~/quanser")
 end
 
+"""
+    set_board(board)
+
+Set the board to use, the default is `qube_servo3_usb`.
+"""
 function set_board(board)
     @set_preferences!("board" => board)
+    @info("New board set; restart your Julia session for this change to take effect!")
 end
 
 function get_board()
     @load_preference("board", "qube_servo3_usb")
+end
+
+"""
+    set_default_backend(backend)
+
+Set the default backend to use, the default is `"python"`, but you can also choose `"c"`.
+"""
+function set_default_backend(backend)
+    @set_preferences!("default_backend" => lowercase(backend))
+    @info("New default backend set; restart your Julia session for this change to take effect!")
+end
+
+function get_default_backend()
+    @load_preference("default_backend", "python")
 end
 
 
@@ -164,31 +190,38 @@ function load_default_backend(;
     encoder_read_buffer::Vector{Int32},
     analog_read_buffer::Vector{Int32},
 )
-    if HIL[] === Py(nothing)
-        @info "Loading quanser Python module"
-        sys = pyimport("sys")
+    backend = get_default_backend()
+    if backend == "python"
+        if HIL[] === Py(nothing)
+            @info "Loading quanser Python module"
+            sys = pyimport("sys")
 
-        sys.path.append(get_quanser_python_path())
-        HIL[] = pyimport("quanser.hardware" => "HIL")
+            sys.path.append(get_quanser_python_path())
+            HIL[] = pyimport("quanser.hardware" => "HIL")
+        end
+        if card[] !== Py(nothing)
+            # If already loaded, close first
+            @info "Closing previous HIL card"
+            card[].close()
+            sleep(0.1)
+        end
+        @info "Loading HIL card"
+        board = get_board()
+        card[] = try_twice(()->HIL[]("qube_servo3_usb", "0"))
+        PythonBackend(
+            card[],
+            digital_channel_write,
+            encoder_channel,
+            analog_channel_write,
+            analog_channel_read,
+            encoder_read_buffer,
+            analog_read_buffer,
+        )
+    elseif backend == "c"
+        error("c backend not yet implemented")
+    else
+        error(""" Unknown backend: $(backend), choose "python" or "c" or implement your own $backend backend""")
     end
-    if card[] !== Py(nothing)
-        # If already loaded, close first
-        @info "Closing previous HIL card"
-        card[].close()
-        sleep(0.1)
-    end
-    @info "Loading HIL card"
-    board = get_board()
-    card[] = try_twice(()->HIL[]("qube_servo3_usb", "0"))
-    PythonBackend(
-        card[],
-        digital_channel_write,
-        encoder_channel,
-        analog_channel_write,
-        analog_channel_read,
-        encoder_read_buffer,
-        analog_read_buffer,
-    )
 end
 
 """
