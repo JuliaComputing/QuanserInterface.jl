@@ -1,6 +1,11 @@
-using Ipopt, OptimizationMOI, Optimization
+#=
+This example can not be run by itself, instead, uncomment the inclusion of this file from furuta_lqg.jl
+
+This script performs the optimization detailed here
+https://juliacontrol.github.io/ControlSystems.jl/stable/examples/automatic_differentiation/#Optimization-based-tuning%E2%80%93LQG-controller
+=#
+using Ipopt, OptimizationMOI, Optimization, ImplicitDifferentiation
 MOI = OptimizationMOI.MOI
-using ImplicitDifferentiation
 
 function triangular(x)
     m = length(x)

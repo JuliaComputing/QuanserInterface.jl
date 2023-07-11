@@ -1,7 +1,8 @@
-using HardwareAbstractions
-using QuanserInterface
-using ControlSystemsBase, RobustAndOptimalControl
-using LowLevelParticleFilters
+#=
+Design al LQG controller for the Furuta pendulum in the upright position (xr[2] = pi)
+=#
+
+using HardwareAbstractions, QuanserInterface, ControlSystemsBase, RobustAndOptimalControl, LowLevelParticleFilters, StaticArrays, Plots
 
 # ==============================================================================
 ## Pendulum
@@ -68,5 +69,5 @@ Li = C*sysd
 Ligmf = Cgmf*sysd
 f2 = nyquistplot([Li, Ligmf], Ms_circles=[2, Ms], ylims=(-2, 2), xlims=(-3,2), lab="Ms = $Ms")
 f3 = marginplot([Li, Ligmf])
-vline!([27.2], sp=1, lab="Fundamental limitation")
+vline!([27.2], sp=1, lab="Fundamental limitation") # The crossover bandwidth must be higher than this due to unstable pole 27.2 = 2p
 plot(f1, f2, f3)

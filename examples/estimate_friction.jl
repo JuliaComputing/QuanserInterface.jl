@@ -1,3 +1,8 @@
+#=
+This script estimates a simple friction model consisting of Coulomb friction and a low-order polynomial viscous friction model. The experiment assumes that the servo is equipped with the inertia disc, and runs with a constant velocity for a while, and then increases the velocity. 
+
+The transition periods between velocities is filtered out from the estimation data so that we can make the assumption that the acceleration is always zero. This allows us to disregard inertial effects and model only friction behavor.
+=#
 using DelimitedFiles
 
 # ==============================================================================
@@ -56,7 +61,7 @@ end
 
 p = QubeServo()
 ##
-r = t->-(2 + 2floor(t/4)^2) # Velocity reference
+r = t->-(2 + 2floor(t/4)^2) # Velocity reference, negate this to collect for negative velocities
 D = vel_control(p; r, Tf = 55, K=0.02, Ti = 0.1)
 
 # writedlm("frictionexperiment_neg.csv", [["t" "y" "yd_filtered" "u" "r"]; D'], ',')

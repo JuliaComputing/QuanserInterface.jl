@@ -1,3 +1,8 @@
+#= 
+This script performs maximum likelihood estimation of the parameters of the pendulum. The first estimation optimizes over the paramters of the pendulum only, while the second estimation optimizes also the dynamics noise covariance. The call to readdlm can be replaced with whatever data you have available, as long as you can get a recording of the input and two outputs.
+
+The estimation uses an UnscentedKalmanFilter to perform state estimation, the system is unstable and integrates a force disturbance, and performing identification using a state estimator is a good way of handling both those problems.
+=#
 cd(@__DIR__)
 using DelimitedFiles, Plots
 N = 250

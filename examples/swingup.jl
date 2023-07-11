@@ -1,3 +1,6 @@
+#=
+This script performs swingup of the pendulum using an energy-based controller, and stabilizes the pendulum at the top using an LQR controller. The controller gain is designed using furuta_lqg.jl
+=#
 using QuanserInterface
 using HardwareAbstractions
 using ControlSystemsBase
