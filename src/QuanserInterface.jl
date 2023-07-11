@@ -12,9 +12,9 @@ import HardwareAbstractions as hw
 import HardwareAbstractions: control, measure, inputrange, outputrange, isstable, isasstable, sampletime, bias, initialize, finalize, processtype, ninputs, noutputs, nstates
 import LowLevelParticleFilters as llpf
 using Preferences
+include("QuanserBindings.jl")
 
 include("backends.jl")
 include("qube_servo.jl")
-
 
 end

@@ -1,0 +1,8 @@
+[general]
+library_name = "hil_sdk"
+output_file_path = "./src/QuanserBindings.jl"
+module_name = "QuanserBindings"
+export_symbol_prefixes = ["CX", "clang_"]
+
+[compiler]
+flags = "-I/opt/quanser/hil_sdk/include"  # replace with your library path

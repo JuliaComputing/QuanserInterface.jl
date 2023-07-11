@@ -4,6 +4,9 @@ authors = ["Fredrik Bagge Carlson"]
 version = "1.0.0-DEV"
 
 [deps]
+CBinding = "d43a6710-96b8-4a2d-833c-c424785e5374"
+CEnum = "fa961155-64e5-5f13-b03f-caf6b980ea82"
+Clang = "40e3b903-d033-50b4-a0cc-940c62c95e31"
 ControlSystemIdentification = "3abffc1c-5106-53b7-b354-a47bfc086282"
 ControlSystemsBase = "aaaaaaaa-a6ca-5380-bf3e-84a91bcd477e"
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
@@ -11,8 +14,10 @@ DiscretePIDs = "c1363496-6848-4723-8758-079b737f6baf"
 HardwareAbstractions = "9ac91abb-62f4-42c0-88e8-83732e93d543"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 LowLevelParticleFilters = "d9d29d28-c116-5dba-9239-57a5fe23875b"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 Preferences = "21216c6a-2e73-6563-6e65-726566657250"
 PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
+RobustAndOptimalControl = "21fd56a4-db03-40ee-82ee-a87907bee541"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
