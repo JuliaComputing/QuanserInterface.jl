@@ -115,7 +115,7 @@ function swingup_balance_demo(p;
             end
         end
     catch e
-        @error "Shit hit the fan" e
+        @error "Terminating" e
         # rethrow()
     finally
         control(p, [0.0])

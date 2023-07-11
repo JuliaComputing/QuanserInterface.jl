@@ -58,7 +58,7 @@ function chirp_experiment(p;
             end
         end
     catch e
-        @error "Shit hit the fan" e
+        @error "Terminating" e
     finally
         control(p, [0.0])
         GC.enable(true)

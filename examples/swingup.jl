@@ -98,7 +98,7 @@ function swingup(process; Tf = 10, verbose=true, stab=true)
             end
         end
     catch e
-        @error "Shit hit the fan" e
+        @error "Terminating" e
         # rethrow()
     finally
         control(process, [0.0])
