@@ -75,7 +75,7 @@ function load_default_backend(;
         end
         @info "Loading HIL card"
         board = get_board()
-        card[] = try_twice(()->HIL[]("qube_servo3_usb", "0"))
+        card[] = try_twice(()->HIL[](board, "0"))
         PythonBackend(
             card[],
             digital_channel_write,
