@@ -45,9 +45,10 @@ syse = ExtendedStateSpace(sysd, C1=I, B1=I)
 
 # include("optimize_lqg.jl") # Optionally perform optimization of Q1 and R1
 
+direct = true
 prob = LQGProblem(syse, Q1, Q2, R1, R2, qQ=0, qR = 0.0)
 L = lqr(prob)
-K = kalman(prob)
+K = kalman(prob; direct)
 
 L = SMatrix{size(L)...}(L)
 K = SMatrix{size(K)...}(K)
@@ -55,7 +56,7 @@ K = SMatrix{size(K)...}(K)
 obs = observer_filter(sysd, K, output_state=true)
 
 
-C = observer_controller(sysd, L, K; direct=true)
+C = observer_controller(sysd, L, K; direct)
 Cgmf, γ, gmfinfo = glover_mcfarlane(sysd, W1=pid(50,0.02; sysd.Ts))
 Si = input_sensitivity(sysd, C)
 Ti = input_comp_sensitivity(sysd, C)
