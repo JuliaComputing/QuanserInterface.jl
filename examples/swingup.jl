@@ -113,14 +113,14 @@ process = QuanserInterface.QubeServoPendulum(; Ts)
 # home!(process, 0)
 ##
 # sprocess = QuanserInterface.QubeServoPendulumSimulator(; Ts)
-function runplot()
+function runplot(; kwargs...)
     y = measure(process)
     if abs(y[2]) > 0.8 || !(-2.5 < y[1] < 2.5)
         autohome!(process)
     end
     global D
-    D = swingup(process; Tf = 25, stab = true)
+    D = swingup(process; kwargs...)
     plotD(D)
 end
-runplot()
+runplot(; Tf = 25)
 
