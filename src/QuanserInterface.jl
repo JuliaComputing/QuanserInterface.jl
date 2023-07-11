@@ -5,7 +5,6 @@ export home_arm!, home_pend!, home!, autohome!
 
 using LinearAlgebra
 using StaticArrays
-using PythonCall
 using HardwareAbstractions
 using ControlSystemsBase
 import HardwareAbstractions as hw
