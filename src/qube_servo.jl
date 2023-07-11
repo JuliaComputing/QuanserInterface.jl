@@ -153,6 +153,11 @@ function home_arm!(p::QubeServoPendulum, ang=137)
     p.left_flange[] = y + deg2rad(137-ang)
 end
 
+"""
+    home_pend!(p::QubeServoPendulum)
+
+Home the pendulum encoder by recording the current angle.
+"""
 function home_pend!(p::QubeServoPendulum)
     ybits = measure(p.backend)[2]
     y = ybits * 2pi / 2048 # radians
@@ -160,12 +165,27 @@ function home_pend!(p::QubeServoPendulum)
     p.downward[] = y
 end
 
+"""
+    home!(p::QubeServoPendulum, args)
+
+Home both encoders, calls
+```julia
+home_arm!(p, args...)
+home_pend!(p)
+```
+"""
 function home!(p::QubeServoPendulum, args...)
     home_arm!(p, args...)
     home_pend!(p)
     nothing
 end
 
+
+"""
+    autohome!(p::QubeServoPendulum, args)
+
+Automatically home the device by slowly moving to the left end stop (clockwise) and waiting for the velocity to be small. When the pendulum has converged, the encoders offsets are recorded. 
+"""
 function autohome!(p::QubeServoPendulum, args...)
     @info "Autohoming by moving to the left end stop"
     Ts = p.Ts
