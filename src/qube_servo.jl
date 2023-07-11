@@ -166,6 +166,35 @@ function home!(p::QubeServoPendulum, args...)
     nothing
 end
 
+function autohome!(p::QubeServoPendulum, args...)
+    @info "Autohoming by moving to the left end stop"
+    Ts = p.Ts
+    ux = 0.2
+    yo = measure(p)
+    dy = zeros(2)
+    dyf = zeros(2)
+    for i = 1:ceil(Int, 100/Ts)
+        @periodically Ts begin
+            control(p, [ux])
+            ux += min(0.2*Ts, 2)
+            y = measure(p)
+            dy = (y - yo) ./ Ts
+            @. dyf = 0.8dyf + 0.2dy
+            v = norm(dyf)
+            i % 10 == 0 && @info("Velocity $v, control $ux")
+            if v < 1e-3 && ux >= 0.5
+                @info "Converged"
+                break
+            end
+            yo = y
+        end
+    end
+    home_arm!(p, args...)
+    home_pend!(p)
+    sleep(0.1)
+    control(p, [0.0])
+end
+
 function measure(p::QubeServoPendulum)
     ybits = measure(p.backend)
     y = ybits .* 2pi / 2048 # radians

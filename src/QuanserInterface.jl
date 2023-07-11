@@ -1,7 +1,7 @@
 module QuanserInterface
 
 export QubeServo, QubeServoPendulum, QubeServoPendulumSimulator
-export home_arm!, home_pend!, home!
+export home_arm!, home_pend!, home!, autohome!
 
 using LinearAlgebra
 using StaticArrays
@@ -12,8 +12,8 @@ import HardwareAbstractions as hw
 import HardwareAbstractions: control, measure, inputrange, outputrange, isstable, isasstable, sampletime, bias, initialize, finalize, processtype, ninputs, noutputs, nstates
 import LowLevelParticleFilters as llpf
 using Preferences
-include("QuanserBindings.jl")
 
+include("QuanserBindings.jl")
 include("backends.jl")
 include("qube_servo.jl")
 

@@ -127,7 +127,7 @@ function swingup_balance_demo(p;
 end
 
 ##
-
+# home!(process, 45)
 D = swingup_balance_demo(process; u_max=10, Tf = 12)
 plotD(D)
 
