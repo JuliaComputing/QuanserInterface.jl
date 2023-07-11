@@ -2,7 +2,13 @@ module QuanserBindings
 
 using CEnum
 
-const hil_sdk = "/opt/quanser/lib/libhil.dylib"
+@static if Base.Sys.islinux()
+    const hil_sdk = "/opt/quanser/lib/libhil.so"
+elseif Base.Sys.isapple()
+    const hil_sdk = "/opt/quanser/lib/libhil.dylib"
+else
+    error("Unsupported platform")
+end
 
 const __darwin_off_t = Int64
 
