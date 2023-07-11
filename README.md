@@ -11,16 +11,18 @@ This repo contains a Julia interface to the Quanser hardware-in-the-loop (HIL) S
 3. To use the C backend (default), install the sdk, and if on Linux, possibly symlink `sudo ln -s /usr/lib/x86_64-linux-gnu/libquanser_communications.so.1 /lib/libquanser_communications.so` (or wherever the library is located on your system), I had issues with the `.1` suffix causing Libdl not to find the library. The easiest way to install all the required shared libraries is to follow the python install instructions, i.e., issue the `sudo apt install python3-quanser-apis` after having added their package server.
 
 ### Setting preferences
-Preferences.jl is used to store the path to the python HIL SDK as well as the default board type. You can set these preferences by running
+Preferences.jl is used to store the default backend choice, the path to the python HIL SDK as well as the default board type. You can set these preferences by running
 ```julia
-QuanserInterface.set_quanser_python_path(path)
+QuanserInterface.set_default_backend(backend) # "c" or "python"
 QuanserInterface.set_board(board)
+QuanserInterface.set_quanser_python_path(path) # Only applies if python backend is installed
 ```
 
 The defaults if none are set are equivalent to
 ```julia
-QuanserInterface.set_quanser_python_path("~/quanser")
+QuanserInterface.set_default_backend("c")
 QuanserInterface.set_board("qube_servo3_usb")
+QuanserInterface.set_quanser_python_path("~/quanser")
 ```
 
 ## Supported devices
