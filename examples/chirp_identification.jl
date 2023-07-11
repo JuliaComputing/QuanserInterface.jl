@@ -1,5 +1,7 @@
 using HardwareAbstractions
 using QuanserInterface
+using StaticArrays
+using Plots
 
 """
     chirp_experiment(p; f0 = 0.08, f1 = 10, Tf = 28, gain = 0.05, u_max = 10.0)
