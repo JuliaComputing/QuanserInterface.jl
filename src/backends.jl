@@ -59,6 +59,7 @@ function load_default_backend(;
     analog_read_buffer::Vector{Int32},
 )
     backend = get_default_backend()
+    board = get_board()
     if backend == "python"
         if HIL[] === Py(nothing)
             @info "Loading quanser Python module"
@@ -74,7 +75,7 @@ function load_default_backend(;
             sleep(0.1)
         end
         @info "Loading HIL card"
-        board = get_board()
+        
         card[] = try_twice(()->HIL[](board, "0"))
         PythonBackend(
             card[],
@@ -86,7 +87,22 @@ function load_default_backend(;
             analog_read_buffer,
         )
     elseif backend == "c"
-        error("c backend not yet implemented")
+        board_identifier = "0@tcpip://localhost:18920?nagle='off'"
+        card = Ref(QuanserBindings.t_card(Int('0')))
+        result = QuanserBindings.hil_open(board, board_identifier, card)
+        checkC(result)
+        if card.hil_is_valid(card[]) != true
+            @error("Failed: Invalid tag card")
+        end
+        CBackend(
+            card[],
+            digital_channel_write,
+            encoder_channel,
+            analog_channel_write,
+            analog_channel_read,
+            encoder_read_buffer,
+            analog_read_buffer,
+        )
     else
         error(""" Unknown backend: $(backend), choose "python" or "c" or implement your own $backend backend""")
     end
@@ -165,3 +181,52 @@ end
 finalize(p::PythonBackend) = p.card.close()
 
 
+
+# ==============================================================================
+## C backend
+# ==============================================================================
+
+abstract type QuanserCBackend end
+
+struct CBackend <: QuanserCBackend
+    card
+    digital_channel_write::Vector{UInt32}
+    encoder_channel::Vector{UInt32}
+    analog_channel_write::Vector{UInt32}
+    analog_channel_read::Vector{UInt32}
+    encoder_read_buffer::Vector{Int32}
+    analog_read_buffer::Vector{Int32}
+end
+
+function checkC(result)
+    res = convert(Int64,result)
+    success = res === 0
+    success || @error("Failed: $result")
+    success
+end
+
+function measure(p::CBackend)
+    if !isempty(length(p.encoder_channel))
+        result = QuanserBindings.hil_read_encoder(p.card, p.encoder_channel, length(p.encoder_channel), p.encoder_read_buffer)
+        checkC(result)
+    end
+    if !isempty(p.analog_channel_read)
+        result = QuanserBindings.hil_read_analog(p.card,p.analog_channel_read, length(p.analog_channel_read), p.analog_read_buffer)
+        checkC(result)
+    end
+    [p.encoder_read_buffer; p.analog_read_buffer]
+end
+
+function control(p::CBackend, u::Vector{Float64})
+    result = QuanserBindings.hil_write_analog(p.card,p.analog_channel_write, length(p.analog_channel_write), u)
+    checkC(result)
+    u
+end
+
+function initialize(p::CBackend)
+    enable = [UInt32(1)]
+    result = QuanserBindings.hil_write_digital(p.card,p.digital_channel_write, 1, enable)
+    checkC(result)
+end
+
+finalize(p::CBackend) = QuanserBindings.hil_close(p.card)
