@@ -296,50 +296,77 @@ control(p::QubeServoPendulumSimulator, u::Vector{Float64}) = @invoke control(p, 
 initialize(p::QubeServoPendulumSimulator) = nothing
 finalize(p::QubeServoPendulumSimulator) = nothing
 
+struct HomeController{K, S, F}
+    k::K
+    σ::S
+    Ts::F
+    k2::K
+    function HomeController(k, σ, Ts, k2=1.1)
+        k, k2 = promote(k, k2)
+        new{typeof(k), typeof(σ), typeof(Ts)}(k, σ, Ts, k2)
+    end
+end
+function σ(x, p, t)
+    q, qd = x
+    e = q
+    ė = qd
+    ė + 5e
+end
+function (hc::HomeController)(x, u, p, t)
+    (; σ, k, k2, Ts) = hc
+    s = σ(u, p, t)
+    y  = -√(k*abs(s))*sign(s)
+    xd = -k2*k*sign(s)
+    x += Ts*xd
+    x, y + x
+end
+
 """
-    go_home(process; th = 10, r = 0, Ki = 0)
+    go_home(process; th = 10, r = 0, K = 0.25)
 
 Go to r using a P controller
 
 # Arguments:
 - `th`: Max control
 - `r`: Reference position
-- `Ki`: Integral gain (set to 0.15 or something like that if you are using the inertia disc)
+- `K`: Controller gain
 """
-function go_home(process; th=5, r = 0, K = 0.2, Ki=0.15, Kf = 0.1)
+function go_home(process; th=5, r = 0, K = 0.2)
     Ts = process.Ts
     count = 0
-    int = 0.0
     yo = 0.0
+    dyf = 0.0
     initialize(process)
     local u
     i = 0
+    controller = HomeController(K, σ, Ts, 1.1)
+    xu = 0.0 # Controller state
+    uf = 0.0
     while true
         @periodically Ts begin
             i += 1
             y = measure(process)[1]
             dy = (y - yo) / Ts
             yo = y
+            dyf = 0.5dyf + 0.5dy
             e = r-y
-            if abs(e) < deg2rad(10) && abs(dy) < deg2rad(4)
+            if abs(e) < deg2rad(10) && abs(dyf) < 0.3
                 count += 1
-                if count > 20
+                if count > 100
                     break
                 end
             else
                 count = 0
             end
              # V / rad
-            u0 = K*e + int + Kf*sign(e) # PI controller + Coulomb friction compensation
-            if -th <= u0 <= th # Conditional integration for anti-windup
-                int += Ki*e*Ts
-            end
+            xu, u0 = controller(xu, [y; dy], 0, 0)
             u = clamp(u0, -th, th)
             @show u, y
-            control(process, [u + (i % 2 == 0 ? 0.01 : -0.01)]) # add dither to break static friction
+            control(process, [u]) 
         end
     end
-    u
+    control(process, [xu]) 
+    xu
 end
 
 const Lup = SA[-7.8038045417791615 -38.734485788275485 -2.387482462896501 -3.285300064621874]
