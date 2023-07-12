@@ -2,6 +2,7 @@ using QuanserInterface
 using HardwareAbstractions
 using ControlSystemsBase
 using QuanserInterface: energy
+using Test
 
 
 rr = Ref([0, pi, 0, 0])
@@ -44,7 +45,7 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=5.0)
     end
     y = QuanserInterface.measure(process)
     if verbose && !simulation
-        @info "Starting $(simulation ? "simulation" : "experiment") from y: $y, waiting for your input..."
+        verbose && @info "Starting $(simulation ? "simulation" : "experiment") from y: $y, waiting for your input..."
         # readline()
     end
     yo = zeros(2)
@@ -68,17 +69,17 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=5.0)
                 r = rr[]
                 if !(-deg2rad(110) <= y[1] <= deg2rad(110))
                     u = [-0.5*y[1]]
-                    @warn "Correcting"
+                    verbose && @warn "Correcting"
                     control(process, u)
                     oob += 20
                     if oob > 600
-                        @error "Out of bounds"
+                        verbose && @error "Out of bounds"
                         break
                     end
                 else
                     oob = max(0, oob-1)
                     if stab && abs(normalize_angles(y[2]) - pi) < 0.50
-                        @info "stabilizing"
+                        verbose && @info "stabilizing"
                         u = clamp.(L*(r - xhn), -10, 10)
                     else
                         # xhn = (process.x) # Try with correct state if in simulation
@@ -109,7 +110,7 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=5.0)
 end
 
 process = QuanserInterface.QubeServoPendulumSimulator(; Ts, p = QuanserInterface.pendulum_parameters(true))
-function runplot(process; kwargs...)
+function runplot(process; verbose = isinteractive(), kwargs...)
     rr[][1] = deg2rad(0)
     rr[][2] = pi
     y = QuanserInterface.measure(process)
@@ -118,7 +119,7 @@ function runplot(process; kwargs...)
         autohome!(process)
     end
     global D
-    D = swingup(process; kwargs...)
+    D = swingup(process; verbose, kwargs...)
     isinteractive() && plotD(D)
 end
 
