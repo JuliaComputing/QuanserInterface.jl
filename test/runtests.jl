@@ -119,7 +119,7 @@ function runplot(process; kwargs...)
     end
     global D
     D = swingup(process; kwargs...)
-    plotD(D)
+    isinteractive() && plotD(D)
 end
 
 runplot(process; Tf = 15)
