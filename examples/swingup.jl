@@ -4,12 +4,13 @@ This script performs swingup of the pendulum using an energy-based controller, a
 using QuanserInterface
 using HardwareAbstractions
 using ControlSystemsBase
-using QuanserInterface: energy
+using QuanserInterface: energy, measure
 
 
 const rr = Ref([0, pi, 0, 0])
 nu  = 1 # number of controls
 nx  = 4 # number of states
+Ts  = 0.01 # sampling time
 
 function plotD(D, th=0.2)
     tvec = D[1, :]
@@ -29,7 +30,7 @@ end
 normalize_angles(x::Number) = mod(x, 2pi)
 normalize_angles(x::AbstractVector) = SA[(x[1]), normalize_angles(x[2]), x[3], x[4]]
 
-function swingup(process; Tf = 10, verbose=true, stab=true)
+function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
     # Ts = process.Ts
     Ts = 0.01
     N = round(Int, Tf/Ts)
@@ -41,13 +42,13 @@ function swingup(process; Tf = 10, verbose=true, stab=true)
     if simulation
         u0 = 0.0
     else
-        u0 = 0.5QuanserInterface.go_home(process, r = 0, K = 0.05, Ki=0.2, Kf=0.02)
+        u0 = 0.5QuanserInterface.go_home(process)
         @show u0
     end
     y = QuanserInterface.measure(process)
     if verbose && !simulation
         @info "Starting $(simulation ? "simulation" : "experiment") from y: $y, waiting for your input..."
-        readline()
+        # readline()
     end
     yo = zeros(2)
     dyf = zeros(2)
@@ -79,19 +80,20 @@ function swingup(process; Tf = 10, verbose=true, stab=true)
                     end
                 else
                     oob = max(0, oob-1)
-                    if stab && abs(normalize_angles(y[2]) - pi) < 0.3
+                    if stab && abs(normalize_angles(y[2]) - pi) < 0.40
                         @info "stabilizing"
                         u = clamp.(L*(r - xhn), -10, 10)
                     else
                         # xhn = (process.x) # Try with correct state if in simulation
                         α = y[2] - pi
+                        αr = r[2] - pi
                         α̇ = xh[4]
                         E = energy(α, α̇)
-                        u = [clamp(80*(E - energy(0,0))*sign(α̇*cos(α)) - 0.2*y[1], -10, 10)]
+                        u = [clamp(80*(E - energy(αr,0))*sign(α̇*cos(α)) - 0.2*y[1], -umax, umax)]
                     end
                     control(process, u .+ 0*u0 .+ 0.0*sign(xh[3]))
                 end
-                verbose && @info "t = $t, u = $(u[]), xh = $xh"
+                verbose && @info "t = $(round(t, digits=3)), u = $(u[]), xh = $xh"
                 log = [t; y; xh; u]
                 push!(data, log)
                 yo = y
@@ -112,15 +114,35 @@ end
 process = QuanserInterface.QubeServoPendulum(; Ts)
 # home!(process, 0)
 ##
-# sprocess = QuanserInterface.QubeServoPendulumSimulator(; Ts)
-function runplot(; kwargs...)
+measure = QuanserInterface.measure
+function runplot(process; kwargs...)
+    rr[][1] = deg2rad(0)
+    rr[][2] = pi
     y = measure(process)
     if abs(y[2]) > 0.8 || !(-2.5 < y[1] < 2.5)
+        @info "Auto homing"
         autohome!(process)
     end
     global D
     D = swingup(process; kwargs...)
     plotD(D)
 end
-runplot(; Tf = 25)
 
+runplot(process; Tf = 15)
+
+## Simulated process
+# sprocess = QuanserInterface.QubeServoPendulumSimulator(; Ts)
+# runplot(sprocess; Tf = 25)
+
+task = @spawn runplot(process; Tf = 15)
+rr[][1] = deg2rad(-30)
+rr[][1] = deg2rad(-20)
+rr[][1] = deg2rad(-10)
+rr[][1] = deg2rad(0)
+rr[][1] = deg2rad(10)
+rr[][1] = deg2rad(20)
+rr[][1] = deg2rad(30)
+
+
+rr[][2] = pi
+rr[][2] = 0

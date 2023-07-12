@@ -196,11 +196,11 @@ function autohome!(p::QubeServoPendulum, args...)
     for i = 1:ceil(Int, 100/Ts)
         @periodically Ts begin
             control(p, [ux])
-            ux += min(0.2*Ts, 2)
+            ux += min(0.15*Ts, 2)
             y = measure(p)
             dy = (y - yo) ./ Ts
             @. dyf = 0.8dyf + 0.2dy
-            v = norm(dyf)
+            v = norm(dyf .* [1, 10]) # weight velocity
             i % 10 == 0 && @info("Velocity $v, control $ux")
             if v < 1e-3 && ux >= 0.5
                 @info "Converged"
