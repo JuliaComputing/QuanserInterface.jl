@@ -91,7 +91,7 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
                         E = energy(α, α̇)
                         u = [clamp(80*(E - energy(αr,0))*sign(α̇*cos(α)) - 0.2*y[1], -umax, umax)]
                     end
-                    control(process, u .+ 0*u0 .+ 0.0*sign(xh[3]))
+                    control(process, u)
                 end
                 verbose && @info "t = $(round(t, digits=3)), u = $(u[]), xh = $xh"
                 log = [t; y; xh; u]
@@ -114,11 +114,10 @@ end
 process = QuanserInterface.QubeServoPendulum(; Ts)
 # home!(process, 0)
 ##
-measure = QuanserInterface.measure
 function runplot(process; kwargs...)
     rr[][1] = deg2rad(0)
     rr[][2] = pi
-    y = measure(process)
+    y = QuanserInterface.measure(process)
     if abs(y[2]) > 0.8 || !(-2.5 < y[1] < 2.5)
         @info "Auto homing"
         autohome!(process)
@@ -131,7 +130,7 @@ end
 runplot(process; Tf = 15)
 
 ## Simulated process
-# sprocess = QuanserInterface.QubeServoPendulumSimulator(; Ts)
+# sprocess = QuanserInterface.QubeServoPendulumSimulator(; Ts, p = QuanserInterface.pendulum_parameters(true))
 # runplot(sprocess; Tf = 25)
 
 task = @spawn runplot(process; Tf = 15)
