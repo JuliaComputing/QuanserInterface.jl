@@ -8,9 +8,9 @@ using QuanserInterface: energy, measure
 
 
 const rr = Ref([0, pi, 0, 0])
-nu  = 1 # number of controls
-nx  = 4 # number of states
-Ts  = 0.01 # sampling time
+nu  = 1     # number of controls
+nx  = 4     # number of states
+Ts  = 0.005 # sampling time
 
 function plotD(D, th=0.2)
     tvec = D[1, :]
@@ -31,8 +31,7 @@ normalize_angles(x::Number) = mod(x, 2pi)
 normalize_angles(x::AbstractVector) = SA[(x[1]), normalize_angles(x[2]), x[3], x[4]]
 
 function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
-    # Ts = process.Ts
-    Ts = 0.01
+    Ts = process.Ts
     N = round(Int, Tf/Ts)
     data = Vector{Vector{Float64}}(undef, 0)
     sizehint!(data, N)
@@ -52,7 +51,9 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
     end
     yo = zeros(2)
     dyf = zeros(2)
-    L = [-7.410199310542298 -36.40730995983665 -2.0632501290782095 -3.149033572767301] # State-feedback gain
+    # L = [-6.2290714881192555 -35.921009011898256 -1.8030518997074174 -3.0622651308887208] # Suitable for Ts = 0.005
+    L =  [-2.8515070942708687 -24.415803244034326 -0.9920297324372649 -1.9975963404759338]
+    # L = [-7.410199310542298 -36.40730995983665 -2.0632501290782095 -3.149033572767301] # State-feedback gain
 
     try
         GC.gc()

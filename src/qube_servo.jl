@@ -199,7 +199,7 @@ function autohome!(p::QubeServoPendulum, args...)
             ux += min(0.15*Ts, 2)
             y = measure(p)
             dy = (y - yo) ./ Ts
-            @. dyf = 0.8dyf + 0.2dy
+            @. dyf = 0.9dyf + 0.1dy
             v = norm(dyf .* [1, 10]) # weight velocity
             i % 10 == 0 && @info("Velocity $v, control $ux")
             if v < 1e-3 && ux >= 0.5
@@ -348,11 +348,11 @@ function go_home(process; th=5, r = 0, K = 0.2)
             y = measure(process)[1]
             dy = (y - yo) / Ts
             yo = y
-            dyf = 0.5dyf + 0.5dy
+            dyf = 0.9dyf + 0.1dy
             e = r-y
-            if abs(e) < deg2rad(10) && abs(dyf) < 0.3
+            if abs(e) < deg2rad(10) && abs(dyf) < 0.5
                 count += 1
-                if count > 100
+                if count*Ts > 1
                     break
                 end
             else

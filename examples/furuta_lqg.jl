@@ -6,9 +6,9 @@ using HardwareAbstractions, QuanserInterface, ControlSystemsBase, RobustAndOptim
 
 # ==============================================================================
 ## Pendulum
-Ts = 0.01
+Ts = 0.005
 # process = QubeServoPendulum(; Ts)
-psim = QubeServoPendulumSimulator(; Ts)
+psim = QubeServoPendulumSimulator(; Ts, p = QuanserInterface.pendulum_parameters(true))
 xr = SA[0, pi, 0, 0]
 x0 = SA[0, 0.0, 0, 0.0]
 ##
@@ -27,17 +27,7 @@ end
 sysd = c2d(sys, Ts)
 
 Q1 = Diagonal([1000, 10, 1, 1])
-Q2 = 10I(1)
-
-
-R1b = [
-    zeros(2, 4)
-    [zeros(2, 2) diagm([1, 1])]
-]
-R1bd = c2d(ss(sys.A, R1b, I, 0), Ts).B
-R1 = Symmetric(1000R1bd*R1bd')
-R2 = 0.001I(2)
-
+Q2 = 100I(1)
 
 R1 = kron(LowLevelParticleFilters.double_integrator_covariance(Ts, 1000), I(2)) + 1e-9I
 R2 = 2pi/2048 * diagm([0.1, 0.1])
@@ -58,16 +48,21 @@ obs = observer_filter(sysd, K, output_state=true)
 
 
 C = observer_controller(sysd, L, K; direct)
-Cgmf, γ, gmfinfo = glover_mcfarlane(sysd, W1=pid(50,0.02; sysd.Ts))
+
+w = exp10.(LinRange(-2, 2, 200))
+dm = diskmargin(C*sysd, 0, w)
+
+println("Input diskmargin:")
+display(diskmargin(C*sysd))
 Si = input_sensitivity(sysd, C)
 Ti = input_comp_sensitivity(sysd, C)
 Ms = hinfnorm2(Si)[1]
-f1 = gangoffourplot(sysd, [C, Cgmf])
+f1 = gangoffourplot(sysd, C)
 sigmaplot!(Si, lab="Si", sp=1, c=3)
 sigmaplot!(Ti, lab="Ti", sp=6, c=3)
 Li = C*sysd
-Ligmf = Cgmf*sysd
-f2 = nyquistplot([Li, Ligmf], Ms_circles=[2, Ms], ylims=(-2, 2), xlims=(-3,2), lab="Ms = $Ms")
-f3 = marginplot([Li, Ligmf])
+f2 = nyquistplot(Li, Ms_circles=[2, Ms], ylims=(-2, 2), xlims=(-3,2), lab="Ms = $Ms")
+f3 = marginplot(Li)
 vline!([27.2], sp=1, lab="Fundamental limitation") # The crossover bandwidth must be higher than this due to unstable pole 27.2 = 2p
-plot(f1, f2, f3)
+f4 = plot(dm, legend=:bottomleft, plot_title="Input diskmargin")
+plot(f1, f2, f3, f4)
