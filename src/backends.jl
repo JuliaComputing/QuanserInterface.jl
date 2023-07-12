@@ -149,7 +149,7 @@ function try_twice(f)
     try
         f()
     catch e
-        if e isa PyException occursin("HILError: -1073", string(e))
+        if occursin("HILError: -1073", string(e))
             sleep(0.2)
             try
                 return f()
