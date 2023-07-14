@@ -373,12 +373,13 @@ const Lup = SA[-7.8038045417791615 -38.734485788275485 -2.387482462896501 -3.285
 const Ldown = SA[8.59053220448398 -1.3750742576909472 0.7557495972343583 -0.2008266766259501]
 
 energy(x::AbstractVector) = energy(x[2], x[4])
+
 function energy(α, α̇)
     mp = 0.024
     Lp = 0.129
     g = 9.81
     l = Lp/2
-    Jp = mp*Lp^2/3
+    # Jp = mp*Lp^2/3
     Jp_cm = mp*Lp^2/12
-    E = 1/2*Jp_cm*α̇^2 + mp*g*l*(1+cos(α))
+    return 1/2*Jp_cm*α̇^2 + mp*g*l*(1+cos(α))
 end

@@ -2,13 +2,19 @@
 This script estimates a simple friction model consisting of Coulomb friction and a low-order polynomial viscous friction model. The experiment assumes that the servo is equipped with the inertia disc, and runs with a constant velocity for a while, and then increases the velocity. 
 
 The transition periods between velocities is filtered out from the estimation data so that we can make the assumption that the acceleration is always zero. This allows us to disregard inertial effects and model only friction behavor.
+
+F = ma + f(v)
+
+α = ω̇ = ϕ̈
+τ = Jα + f(ω)
+
+f(ω) = -kf sign(ω) - kv ω
 =#
-using DelimitedFiles
 
 # ==============================================================================
 ## Collect friction-estimation data
 # ==============================================================================
-using DiscretePIDs
+using QuanserInterface, DiscretePIDs, HardwareAbstractions
 function vel_control(p; 
     Tf = 10,
     r,
@@ -61,15 +67,17 @@ end
 
 p = QubeServo()
 ##
-r = t->-(2 + 2floor(t/4)^2) # Velocity reference, negate this to collect for negative velocities
-D = vel_control(p; r, Tf = 55, K=0.02, Ti = 0.1)
+r = t->(2 + 2floor(t/4)^2) # Velocity reference, negate this to collect for negative velocities
+D = vel_control(p; r, Tf = 25, K=0.02, Ti = 0.1)
 
+# using DelimitedFiles
 # writedlm("frictionexperiment_neg.csv", [["t" "y" "yd_filtered" "u" "r"]; D'], ',')
 
 # ==============================================================================
 ## Estimate friction model
 # ==============================================================================
 using DelimitedFiles, DSP
+cd(@__DIR__)
 Dp = readdlm("frictionexperiment.csv", ',')
 Dn = readdlm("frictionexperiment_neg.csv", ',')
 D = identity.([Dp[2:end, :]; Dn[2:end, :]])' # Use both positive and negative velocities
@@ -85,13 +93,14 @@ plot(tvec, [yd u r], lab=["yd" "u" "r"], layout=(2,1), sp=[1 2 1], ylims=(0, Inf
 
 ## Data selection.
 # To fit the friction model, we select data without significant acceleration, this way we avoid having to model the inertial properties. We also only select small velocities that are relevant for the pendulum swingup
+using DSP
 ydd = centraldiff(yd) ./ p.Ts
 nf = 20
 yddf = filtfilt(ones(nf)./nf, ydd)
 absacc = abs.(yddf)
-plot(tvec, [yddf, absacc])
-smallacc = (absacc .< 2) .& (abs.(yd) .!= 0) .& (abs.(yd) .< 35) # Tuned by looking at the plot above
+plot(tvec, [yddf, absacc], lab=["ydd" "abs(ydd)"])
 
+smallacc = (absacc .< 2) .& (abs.(yd) .!= 0) .& (abs.(yd) .< 35) # Tuned by looking at the plot above
 u1 = u[smallacc]
 yd1 = yd[smallacc]
 
@@ -116,7 +125,8 @@ ydvec = range(-35, 35, length=1001)
 uh = [sign.(ydvec) ydvec signsquare.(ydvec) ydvec.^3] * w
 plot!(ydvec, uh, lab="Model",  framestyle=:zerolines, title="Friction model")
 
-smoothsign(x) = tanh(5*x)
 
+# A smoother version of sign
+smoothsign(x) = tanh(5*x)
 uh = [smoothsign.(ydvec) ydvec signsquare.(ydvec) ydvec.^3] * w
 plot!(ydvec, uh, lab="Model",  framestyle=:zerolines, title="Friction model")

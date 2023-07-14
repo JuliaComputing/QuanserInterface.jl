@@ -51,9 +51,8 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
     end
     yo = zeros(2)
     dyf = zeros(2)
-    # L = [-6.2290714881192555 -35.921009011898256 -1.8030518997074174 -3.0622651308887208] # Suitable for Ts = 0.005
     L =  [-2.8515070942708687 -24.415803244034326 -0.9920297324372649 -1.9975963404759338]
-    # L = [-7.410199310542298 -36.40730995983665 -2.0632501290782095 -3.149033572767301] # State-feedback gain
+    # L = [-7.410199310542298 -36.40730995983665 -2.0632501290782095 -3.149033572767301] # State-feedback gain Ts = 0.01
 
     try
         GC.gc()
@@ -90,7 +89,8 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
                         αr = r[2] - pi
                         α̇ = xh[4]
                         E = energy(α, α̇)
-                        u = [clamp(80*(E - energy(αr,0))*sign(α̇*cos(α)) - 0.2*y[1], -umax, umax)]
+                        uE = 80*(E - energy(αr,0))*sign(α̇*cos(α))
+                        u = [clamp(uE - 0.2*y[1], -umax, umax)]
                     end
                     control(process, u)
                 end

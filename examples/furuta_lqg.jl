@@ -16,18 +16,18 @@ x0 = SA[0, 0.0, 0, 0.0]
 normalize_angles_pi(x::Number) = mod(x+pi, 2pi)-pi
 normalize_angles_pi(x::AbstractVector) = SA[normalize_angles_pi(x[1]), normalize_angles_pi(x[2]), x[3], x[4]]
 
-
-sys = let (A,B) = ControlSystemsBase.linearize(psim.dynamics, xr, [0], psim.p, 0)
-    let (C,D) = ControlSystemsBase.linearize(psim.measurement, xr, [0], psim.p, 0)
-        ss(A,B,C,D)
-    end
+function linearize_pendulum(xr)
+    A, B = ControlSystemsBase.linearize(psim.dynamics, xr, [0], psim.p, 0)
+    C, D = ControlSystemsBase.linearize(psim.measurement, xr, [0], psim.p, 0)
+    ss(A,B,C,D)
 end
+sys = linearize_pendulum(xr)
 # sysaug = add_measurement_disturbance(sys, [-1e-8;;], [0; 1;;])
 # sysaug = add_low_frequency_disturbance(sys, 1, ϵ = 1e-8)
 sysd = c2d(sys, Ts)
 
 Q1 = Diagonal([1000, 10, 1, 1])
-Q2 = 100I(1)
+Q2 = 10I(1)
 
 R1 = kron(LowLevelParticleFilters.double_integrator_covariance(Ts, 1000), I(2)) + 1e-9I
 R2 = 2pi/2048 * diagm([0.1, 0.1])

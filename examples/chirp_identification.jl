@@ -32,10 +32,10 @@ function chirp_experiment(p;
     initialize(p)
     Ts = p.Ts
     N = round(Int, Tf/Ts)
-    data = Vector{SVector{5, Float32}}(undef, 0)
+    data = Vector{Vector{Float32}}(undef, 0)
     sizehint!(data, N)
     t_start = time()
-    y_start = measure(p)[]
+    y_start = measure(p)
     @info "Starting chirp experiment from f0 = $f0 to f1 = $f1 during $Tf seconds. Feedback: $feedback"
     try
         GC.gc()
@@ -43,17 +43,17 @@ function chirp_experiment(p;
         for i = 1:N
             @periodically Ts begin 
                 t = time() - t_start
-                y = measure(p)[] - y_start # Subtract initial position for a smoother experience
+                y = measure(p) - y_start # Subtract initial position for a smoother experience
                 r = amplitude*chirp(t, f0, f1, Tf; logspace=true)
                 if feedback
-                    e = r - y
+                    e = r - y[1]
                     u = clamp(gain*e, -u_max, u_max)
                 else
                     e = 0.0
                     u = clamp(gain*r, -u_max, u_max)
                 end
                 control(p, [u])
-                log = SA[t, y, u, r, e]
+                log = [t; y; u; r; e]
                 push!(data, log)
             end
         end
@@ -69,32 +69,46 @@ function chirp_experiment(p;
 end
 
 
-p = QubeServo()
 
 # show_measurements(p) do data
 #     display(plot(reduce(hcat, data)'))
 # end
 
-D = chirp_experiment(p; Tf = 30, f1=8, feedback=true)
+if true # Use DC-servo only
+    process = QubeServo()
+    D = chirp_experiment(process; Tf = 20, f1=8, feedback=true)
+else
+    process = QubeServoPendulum()
+    autohome!(process)
+    QuanserInterface.go_home(process)
+    D = chirp_experiment(process; Tf = 30, f1=3, feedback=true, amplitude = deg2rad(60), gain=1)
+end
 
-ti = 1; yi = 2; ui = 3; ri = 4; ei = 5;
+##
+ny = noutputs(process)
+ti = 1; yi = (1:ny) .+ 1; ui = yi[end]+1; ri = ui+1; ei = ri+1;
 tvec = D[ti, :]
-fig = plot(tvec, D[yi, :], layout=2, lab="y")
+fig = plot(tvec, D[yi, :]', layout=ny+1, lab="y")
 plot!(tvec, D[ri, :], lab="r", sp=1, alpha=0.5)
 plot!(tvec, D[ei, :], lab="e", sp=1, alpha=0.5)
-plot!(tvec, D[ui, :], lab="u", sp=2)
+plot!(tvec, D[ui, :], lab="u", sp=ny+1)
 display(current())
 
+# ==============================================================================
+## Save data
+# ==============================================================================
+using DelimitedFiles
+cd(@__DIR__)
+writedlm("data/chirp_experiment.csv", [["t" ]], ',')
 
 # ==============================================================================
 ## Estimate model
 # ==============================================================================
 using ControlSystemIdentification, ControlSystemsBase, Plots
 using ControlSystemsBase: numeric_type
-d = iddata(D[2,:], D[3, :], p.Ts)
-d = detrend(d)
-# ControlSystemIdentification.find_nanb(d, 4, 4)
-model = arx(d, 2, 1, stochastic=false, inputdelay=2)
+d = iddata(D[2,:], D[3, :], process.Ts)
+ControlSystemIdentification.find_nanb(d, 4, 4)
+model = arx(d, 2, 1, stochastic=false)
 w = exp10.(LinRange(0, 2, 200))
 f1 = coherenceplot(d)
 f2 = bodeplot(model, w)

@@ -46,8 +46,8 @@ solplot = plot!(fsol, ploty=false, plotx=false, name="Initial", c=2)
 ## Optimization
 # ==============================================================================
 
-typical_magnitude = SA[2.0, 3]
-Λ = Diagonal(1 ./ (typical_magnitude.^2))
+# typical_magnitude = SA[2.0, 3]
+# Λ = Diagonal(1 ./ (typical_magnitude.^2))
 
 function cost(plog::Vector{T}) where T
     p = exp10.(plog)
@@ -70,7 +70,6 @@ res = Optim.optimize(
     cost,
     p0,
     BFGS(linesearch=LineSearches.BackTracking()),
-    # ParticleSwarm(),
     Optim.Options(
         show_trace = true,
         show_every = 5,
@@ -82,75 +81,13 @@ res = Optim.optimize(
 
 
 popt = exp10.(res.minimizer)
-reset!(kf)
+llpf.reset!(kf)
 fsolopt = forward_trajectory(kf, uvv, yvv, popt)
 plot!(solplot, fsolopt, ploty=false, plotx=false, plotu=false, name="Optimized", c=3)
 
 ## Compare initial to optimized parameters
 bar([p0 res.minimizer], xticks=(1:length(p0), string.(keys(psim.p))), xlabel="Parameter", ylabel="Value log10", lab=["Initial" "Optimized"], alpha=0.5)
 
-
-# ==============================================================================
-## Optimization of covariance matrix as well
-# ==============================================================================
-
-
-# function triangular(x)
-#     m = length(x)
-#     n = round(Int, sqrt(2m-1))
-#     T = zeros(eltype(x), n, n)
-#     k = 1
-#     for i = 1:n, j = i:n
-#         T[i,j] = x[k]
-#         k += 1
-#     end
-#     T
-# end
-# invtriangular(T) = [T[i,j] for i = 1:size(T,1) for j = i:size(T,1)]
-
-# function costR(plogR::Vector{T}) where T
-#     plog = plogR[1:np]
-#     p = exp10.(plog)
-#     Rchol = triangular(plogR[np+1:end])
-#     R1 = Rchol'Rchol
-#     d0i = MvNormal(T.(d0.μ), d0.Σ)
-#     kf = UnscentedKalmanFilter(psim.ddyn, psim.measurement, R1, R2, d0i; ny, nu, p)
-#     try
-#         # return LowLevelParticleFilters.sse(kf, uvv, yvv, p, Λ)
-#         return -LowLevelParticleFilters.loglik(kf, uvv, yvv, p)
-#     catch
-#         return T(Inf)
-#     end
-# end
-
-# np = length(p0)
-# p0R = [p0; invtriangular(cholesky(R1).U)]
-
-# resR = Optim.optimize(
-#     costR,
-#     p0R,
-#     BFGS(),
-#     # ParticleSwarm(),
-#     Optim.Options(
-#         show_trace = true,
-#         show_every = 5,
-#         iterations = 1000,
-#         time_limit = 130,
-#     ),
-#     autodiff = :forward,
-# )
-
-# poptR = exp10.(resR.minimizer[1:np])
-# Roptchol = triangular(resR.minimizer[np+1:end])
-# Ropt = Roptchol'Roptchol
-# kfopt = UnscentedKalmanFilter(psim.ddyn, psim.measurement, Ropt, R2, d0; ny, nu, p=poptR)
-
-# reset!(kfopt)
-# fsoloptR = forward_trajectory(kfopt, uvv, yvv, poptR)
-# plot!(solplot, fsoloptR, ploty=false, plotx=false, plotu=false, name="Optimized R", c=4)
-
-# ## Compare initial to optimized parameters
-# bar([p0 resR.minimizer[1:np]], xticks=(1:length(p0), string.(keys(psim.p))), xlabel="Parameter", ylabel="Value log10", lab=["Initial" "Optimized"], alpha=0.5)
 
 # ==============================================================================
 ## Optimization of covariance matrix restricted to force disturbance
@@ -166,21 +103,19 @@ function costRf(plogR::Vector{T}) where T
     kf = UnscentedKalmanFilter(psim.ddyn, psim.measurement, R1, R2, d0i; ny, nu, p)
     try
         # return LowLevelParticleFilters.sse(kf, uvv, yvv, p, Λ)
-        return -LowLevelParticleFilters.loglik(kf, uvv, yvv, p) - logpdf(MvNormal(p0Rf, 1), plogR)
+        return -LowLevelParticleFilters.loglik(kf, uvv, yvv, p) - logpdf(MvNormal(p0Rf, 2), plogR)
     catch
         return T(Inf)
     end
 end
 
+np = length(p0)
 p0Rf = [p0; log10.([1, 1])]
 
 resRf = Optim.optimize(
     costRf,
     p0Rf,
     BFGS(),
-    # BFGS(linesearch=LineSearches.BackTracking()),
-    # BFGS(linesearch=LineSearches.MoreThuente()),
-    # ParticleSwarm(),
     Optim.Options(
         show_trace = true,
         show_every = 1,
@@ -194,9 +129,9 @@ poptRf = exp10.(resRf.minimizer[1:np])
 poptRf[end] = 9.81 # Fix g
 Roptf = kron(LowLevelParticleFilters.double_integrator_covariance(Ts, 1), diagm(exp10.(resRf.minimizer[np+1:end]))) + 1e-9I
 
-kfoptRf = UnscentedKalmanFilter(psim.ddyn, psim.measurement, Roptf, R2, d0; ny, nu, p=poptR)
+kfoptRf = UnscentedKalmanFilter(psim.ddyn, psim.measurement, Roptf, R2, d0; ny, nu, p=poptRf)
 
-reset!(kfopt)
+llpf.reset!(kfoptRf)
 fsoloptRf = forward_trajectory(kfoptRf, uvv, yvv, poptRf)
 plot!(solplot, fsoloptRf, ploty=false, plotx=false, plotu=false, name="Optimized Rf", c=4)
 
