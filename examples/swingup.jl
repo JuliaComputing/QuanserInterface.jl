@@ -1,6 +1,8 @@
 #=
 This script performs swingup of the pendulum using an energy-based controller, and stabilizes the pendulum at the top using an LQR controller. The controller gain is designed using furuta_lqg.jl
 =#
+cd(@__DIR__)
+using Pkg; Pkg.activate("..")
 using QuanserInterface
 using HardwareAbstractions
 using ControlSystemsBase
@@ -49,13 +51,13 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
         @info "Starting $(simulation ? "simulation" : "experiment") from y: $y, waiting for your input..."
         # readline()
     end
-    yo = zeros(2)
-    dyf = zeros(2)
-    L =  [-2.8515070942708687 -24.415803244034326 -0.9920297324372649 -1.9975963404759338]
+    yo = @SVector zeros(2)
+    dyf = @SVector zeros(2)
+    L =  SA[-2.8515070942708687 -24.415803244034326 -0.9920297324372649 -1.9975963404759338]
     # L = [-7.410199310542298 -36.40730995983665 -2.0632501290782095 -3.149033572767301] # State-feedback gain Ts = 0.01
 
     try
-        GC.gc()
+        # GC.gc()
         GC.enable(false)
         t_start = time()
         u = [0.0]
@@ -65,23 +67,29 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
                 t = simulation ? (i-1)*Ts : time() - t_start
                 y = QuanserInterface.measure(process)
                 dy = (y - yo) ./ Ts
-                @. dyf = 0.5dyf + 0.5dy
+                dyf = @. 0.5dyf + 0.5dy
                 xh = [y; dyf]
-                xhn = [xh[1], normalize_angles(xh[2]), xh[3], xh[4]]
+                xhn = SA[xh[1], normalize_angles(xh[2]), xh[3], xh[4]]
                 r = rr[]
                 if !(-deg2rad(110) <= y[1] <= deg2rad(110))
-                    u = [-0.5*y[1]]
-                    @warn "Correcting"
+                    u = SA[-0.5*y[1]]
+                    verbose && @warn "Correcting"
                     control(process, u .+ u0)
                     oob += 20
                     if oob > 600
-                        @error "Out of bounds"
+                        verbose && @error "Out of bounds"
                         break
                     end
                 else
                     oob = max(0, oob-1)
                     if stab && abs(normalize_angles(y[2]) - pi) < 0.40
-                        @info "stabilizing"
+                        verbose && @info "stabilizing"
+                        # if floor(Int, 2t) % 2 == 0
+                        #     r[1] = -deg2rad(20)
+                        # else
+                        #     r[1] = deg2rad(20)
+                        # end
+
                         u = clamp.(L*(r - xhn), -10, 10)
                     else
                         # xhn = (process.x) # Try with correct state if in simulation
@@ -90,7 +98,7 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
                         α̇ = xh[4]
                         E = energy(α, α̇)
                         uE = 80*(E - energy(αr,0))*sign(α̇*cos(α))
-                        u = [clamp(uE - 0.2*y[1], -umax, umax)]
+                        u = SA[clamp(uE - 0.2*y[1], -umax, umax)]
                     end
                     control(process, u)
                 end
@@ -106,20 +114,22 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
     finally
         control(process, [0.0])
         GC.enable(true)
-        GC.gc()
+        # GC.gc()
     end
 
     D = reduce(hcat, data)
 end
 ##
 process = QuanserInterface.QubeServoPendulum(; Ts)
-# home!(process, 0)
+# home!(process, 38)
 ##
 function runplot(process; kwargs...)
     rr[][1] = deg2rad(0)
     rr[][2] = pi
     y = QuanserInterface.measure(process)
-    if abs(y[2]) > 0.8 || !(-2.5 < y[1] < 2.5)
+    if processtype(process) isa SimulatedProcess
+        process.x = 0*process.x
+    elseif abs(y[2]) > 0.8 || !(-2.5 < y[1] < 2.5)
         @info "Auto homing"
         autohome!(process)
     end
@@ -128,11 +138,14 @@ function runplot(process; kwargs...)
     plotD(D)
 end
 
-runplot(process; Tf = 15)
+runplot(process; Tf = 1500)
 
 ## Simulated process
-# sprocess = QuanserInterface.QubeServoPendulumSimulator(; Ts, p = QuanserInterface.pendulum_parameters(true))
-# runplot(sprocess; Tf = 25)
+process = QuanserInterface.QubeServoPendulumSimulator(; Ts, p = QuanserInterface.pendulum_parameters(true));
+
+@profview_allocs runplot(process; Tf = 5) sample_rate=0.1
+
+##
 
 task = @spawn runplot(process; Tf = 15)
 rr[][1] = deg2rad(-30)
