@@ -113,7 +113,7 @@ function load_default_backend(::Type{CBackend};
     encoder_read_buffer::Vector{Int32},
     analog_read_buffer::Vector{Int32},
     board = get_board(),
-    board_identifier = "0",
+    board_identifier = "0@tcpip://localhost:18920?nagle='off'",
 )
 
     if QuanserBindings.hil_is_valid(cardC[]) == Int8(1)
@@ -121,12 +121,10 @@ function load_default_backend(::Type{CBackend};
     end
     QuanserBindings.hil_close_all()
     # board_identifier = "0@tcpip://localhost:18920?nagle='off'"
-    try_twice() do
-        result = QuanserBindings.hil_open(board, board_identifier, cardC)
-        checkC(result)
-        if QuanserBindings.hil_is_valid(cardC[]) != Int8(1)
-            error("Failed: Invalid tag card")
-        end
+    result = QuanserBindings.hil_open(board, board_identifier, cardC)
+    checkC(result)
+    if QuanserBindings.hil_is_valid(cardC[]) != Int8(1)
+        error("Failed: Invalid tag card")
     end
     b = CBackend(
         cardC[],
