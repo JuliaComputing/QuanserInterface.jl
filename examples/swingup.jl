@@ -15,6 +15,9 @@ nx  = 4     # number of states
 Ts  = 0.005 # sampling time
 
 function plotD(D, th=0.2)
+    if size(D, 2) > 200*200
+        return
+    end
     tvec = D[1, :]
     y = D[2:3, :]'
     # y[:, 2] .-= pi
@@ -58,7 +61,7 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
 
     try
         # GC.gc()
-        GC.enable(false)
+        # GC.enable(false)
         t_start = time()
         u = [0.0]
         oob = 0
@@ -76,9 +79,10 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
                     verbose && @warn "Correcting"
                     control(process, u .+ u0)
                     oob += 20
-                    if oob > 600
+                    if oob > 1000
                         verbose && @error "Out of bounds"
-                        break
+                        QuanserInterface.go_home(process; th = 15)
+                        continue
                     end
                 else
                     oob = max(0, oob-1)
@@ -89,6 +93,7 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
                         # else
                         #     r[1] = deg2rad(20)
                         # end
+                        # r[1] = deg2rad(20)*sin(2pi*t/1)
 
                         u = clamp.(L*(r - xhn), -10, 10)
                     else
@@ -100,7 +105,7 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
                         uE = 80*(E - energy(αr,0))*sign(α̇*cos(α))
                         u = SA[clamp(uE - 0.2*y[1], -umax, umax)]
                     end
-                    control(process, u)
+                    control(process, Vector(u))
                 end
                 verbose && @info "t = $(round(t, digits=3)), u = $(u[]), xh = $xh"
                 log = [t; y; xh; u]
@@ -117,7 +122,7 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
         # GC.gc()
     end
 
-    D = reduce(hcat, data)
+    reduce(hcat, data)
 end
 ##
 process = QuanserInterface.QubeServoPendulum(; Ts)
@@ -138,7 +143,7 @@ function runplot(process; kwargs...)
     plotD(D)
 end
 
-runplot(process; Tf = 1500)
+runplot(process; Tf = 500)
 
 ## Simulated process
 process = QuanserInterface.QubeServoPendulumSimulator(; Ts, p = QuanserInterface.pendulum_parameters(true));
