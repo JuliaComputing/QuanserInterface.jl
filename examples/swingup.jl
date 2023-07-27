@@ -61,7 +61,7 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
 
     try
         # GC.gc()
-        # GC.enable(false)
+        GC.enable(false)
         t_start = time()
         u = [0.0]
         oob = 0
@@ -145,22 +145,22 @@ end
 
 runplot(process; Tf = 500)
 
-## Simulated process
-process = QuanserInterface.QubeServoPendulumSimulator(; Ts, p = QuanserInterface.pendulum_parameters(true));
+# ## Simulated process
+# process = QuanserInterface.QubeServoPendulumSimulator(; Ts, p = QuanserInterface.pendulum_parameters(true));
 
-@profview_allocs runplot(process; Tf = 5) sample_rate=0.1
+# @profview_allocs runplot(process; Tf = 5) sample_rate=0.1
 
-##
+# ##
 
-task = @spawn runplot(process; Tf = 15)
-rr[][1] = deg2rad(-30)
-rr[][1] = deg2rad(-20)
-rr[][1] = deg2rad(-10)
-rr[][1] = deg2rad(0)
-rr[][1] = deg2rad(10)
-rr[][1] = deg2rad(20)
-rr[][1] = deg2rad(30)
+# task = @spawn runplot(process; Tf = 15)
+# rr[][1] = deg2rad(-30)
+# rr[][1] = deg2rad(-20)
+# rr[][1] = deg2rad(-10)
+# rr[][1] = deg2rad(0)
+# rr[][1] = deg2rad(10)
+# rr[][1] = deg2rad(20)
+# rr[][1] = deg2rad(30)
 
 
-rr[][2] = pi
-rr[][2] = 0
+# rr[][2] = pi
+# rr[][2] = 0
