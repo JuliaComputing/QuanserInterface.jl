@@ -10,6 +10,18 @@ This repo contains a Julia interface to the Quanser hardware-in-the-loop (HIL) S
 2. To use the `PythonBackend` Install Quanser python packages as described [here](https://docs.quanser.com/quarc/documentation/python/installation.html) and manually install and load PythonCall (the python backend is an extension). Optionally, set the default backend using `QuanserInterface.set_default_backend("python")`.
 3. To use the C backend (default), install the sdk, and if on Linux, possibly symlink `sudo ln -s /usr/lib/x86_64-linux-gnu/libquanser_communications.so.1 /lib/libquanser_communications.so` (or wherever the library is located on your system), I had issues with the `.1` suffix causing Libdl not to find the library. The easiest way to install all the required shared libraries is to follow the python install instructions, i.e., issue the `sudo apt install python3-quanser-apis` after having added their package server.
 
+### Virtual environment 
+
+To install the virtual QLabs environment on MacOS, download and unzip this file:  https://download.quanser.com/qlabs/latest/QLabs_Installer_maci64.zip
+
+For installation on Windows, use : https://download.quanser.com/qlabs/latest/Install%20QLabs.exe 
+
+To carry out the actual installation on MacOS, please run`sudo ./install_QLabs.sh`
+
+
+Once installed, launch it and log in using Quanser credentials. 
+To control the pendulum, the Quanser Interactive Labs `QUBE 2 – Pendulum > Pendulum workspace` session should be selected
+
 ### Setting preferences
 Preferences.jl is used to store the default backend choice, the path to the python HIL SDK as well as the default board type. You can set these preferences by running
 ```julia
