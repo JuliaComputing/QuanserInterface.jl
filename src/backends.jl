@@ -19,6 +19,20 @@ function get_board()
 end
 
 """
+    set_environment(board_identifier)
+
+Set the environment to use, the default is `0`.
+"""
+function set_environment(board_identifier)
+    @set_preferences!("board_identifier" => board_identifier)
+    @info("New environment set")
+end
+
+function get_environment()
+    @load_preference("board_identifier", "0")
+end
+
+"""
     set_default_backend(backend)
 
 Set the default backend to use, the default is `"c"`, but you can also choose `"python"` if it's installed and PythonCall is loaded manually.
@@ -113,7 +127,7 @@ function load_default_backend(::Type{CBackend};
     encoder_read_buffer::Vector{Int32},
     analog_read_buffer::Vector{Int32},
     board = get_board(),
-    board_identifier = "0",
+    board_identifier = get_environment(),
 )
 
     if QuanserBindings.hil_is_valid(cardC[]) == Int8(1)
