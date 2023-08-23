@@ -7,6 +7,7 @@ using QuanserInterface
 using HardwareAbstractions
 using ControlSystemsBase
 using QuanserInterface: energy, measure
+using StaticArrays
 
 
 const rr = Ref([0, pi, 0, 0])

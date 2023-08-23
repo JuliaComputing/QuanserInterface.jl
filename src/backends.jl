@@ -21,7 +21,7 @@ end
 """
     set_environment(board_identifier)
 
-Set the environment to use, the default is `0`.
+Set the environment to use, the default is `0`. For servo, use `0@tcpip://localhost:18920?nagle='off`
 """
 function set_environment(board_identifier)
     @set_preferences!("board_identifier" => board_identifier)

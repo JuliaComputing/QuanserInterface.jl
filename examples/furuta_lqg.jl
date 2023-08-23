@@ -3,7 +3,7 @@ Design al LQG controller for the Furuta pendulum in the upright position (xr[2] 
 =#
 
 using HardwareAbstractions, QuanserInterface, ControlSystemsBase, RobustAndOptimalControl, LowLevelParticleFilters, StaticArrays, Plots
-
+using LinearAlgebra
 # ==============================================================================
 ## Pendulum
 Ts = 0.005
