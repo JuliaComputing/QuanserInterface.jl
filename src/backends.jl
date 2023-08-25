@@ -19,13 +19,21 @@ function get_board()
 end
 
 """
-    set_environment(board_identifier)
+    set_environment(board_id)
 
-Set the environment to use, the default is `0`. For servo, use `0@tcpip://localhost:18920?nagle='off`
+Set the environment to use, the default is `physical`. To use virtual pendulum, pass "virtual pendulum". To use virtual DC motor pass "virtual DC motor"
 """
-function set_environment(board_identifier)
-    @set_preferences!("board_identifier" => board_identifier)
-    @info("New environment set")
+function set_environment(board_id)
+    if board_id == "physical"
+        @set_preferences!("board_identifier" => "0")
+        @info("New environment set to physical device")
+    elseif board_id == "virtual pendulum"
+        @set_preferences!("board_identifier" => "0@tcpip://localhost:18921")
+        @info("New environment set to Virtual Pendulum")
+    elseif board_id == "virtual DC motor"
+        @set_preferences!("board_identifier" => "0@tcpip://localhost:18920?nagle='off")
+        @info("New environment set to Virtual DC motor")
+    end
 end
 
 function get_environment()

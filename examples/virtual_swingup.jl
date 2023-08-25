@@ -98,7 +98,7 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
                         αr = r[2] - pi
                         α̇ = xh[4]
                         E = energy(α, α̇)
-                        uE = 80*(E - energy(αr,0))*sign(α̇*cos(α))
+                        uE = 300*(E - energy(αr,0))*sign(α̇*cos(α))
                         u = SA[clamp(uE - 0.2*y[1], -umax, umax)]
                     end
                     control(process, Vector(u))
