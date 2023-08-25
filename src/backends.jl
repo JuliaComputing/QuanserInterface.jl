@@ -69,6 +69,8 @@ function measure(p::CBackend)
     [p.encoder_read_buffer; p.analog_read_buffer]
 end
 
+
+control(p::CBackend, u::AbstractVector) = control(p, Vector(u))
 function control(p::CBackend, u::Vector{Float64})
     result = QuanserBindings.hil_write_analog(p.cardC,p.analog_channel_write, length(p.analog_channel_write), u)
     checkC(result)

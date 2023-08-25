@@ -93,6 +93,7 @@ abstract type AbstractQubeServo <: AbstractProcess end
 end
 
 processtype(::QubeServo) = PhysicalProcess()
+control(p::AbstractQubeServo, u::AbstractVector) = control(p, Vector(u))
 control(p::AbstractQubeServo, u::Vector{Float64}) = control(p.backend, u)
 control(p::AbstractQubeServo, u::Number) = control(p, [u])
 ninputs(p::AbstractQubeServo)  = 1
