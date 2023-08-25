@@ -21,7 +21,14 @@ plot!(t, u, sp=3, lab="u")
 # ==============================================================================
 using LowLevelParticleFilters
 import LowLevelParticleFilters as llpf
-using Distributions
+using Distributions, LinearAlgebra
+
+function centraldiff(v)
+    c = size(v,2)
+    a1 = [zeros(1,c);diff(v; dims=1)]
+    a2 = [diff(v; dims=1);zeros(1,c)]
+    (a1 .+ a2) ./ 2
+end
 
 yvv = SVector{2}.(eachrow(y))
 uvv = SVector{1}.(eachrow(u))
@@ -75,6 +82,7 @@ res = Optim.optimize(
         show_every = 5,
         iterations = 1000,
         time_limit = 130,
+        f_tol      = 1e-3,
     ),
     autodiff = :forward,
 )
