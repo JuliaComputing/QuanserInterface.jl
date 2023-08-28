@@ -21,7 +21,7 @@ end
 """
     set_environment(board_id)
 
-Set the environment to use, the default is `physical`. To use virtual pendulum, pass "virtual pendulum". To use virtual DC motor pass "virtual DC motor"
+Set the environment to use, the default is `"physical"`. To use virtual pendulum, pass "virtual pendulum". To use virtual DC motor pass "virtual DC motor"
 """
 function set_environment(board_id)
     if board_id == "physical"
