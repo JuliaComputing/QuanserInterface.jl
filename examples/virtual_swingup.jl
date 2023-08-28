@@ -1,5 +1,5 @@
 #=
-This script performs swingup of the pendulum using an energy-based controller, and stabilizes the pendulum at the top using an LQR controller. The controller gain is designed using furuta_lqg.jl
+This script performs swingup of the virtual pendulum using an energy-based controller, and stabilizes the pendulum at the top using an LQR controller.
 =#
 cd(@__DIR__)
 using Pkg; Pkg.activate("..")
@@ -9,7 +9,9 @@ using ControlSystemsBase
 using QuanserInterface: energy, measure
 using StaticArrays
 
-
+#= 
+Before running script, be sure to have QLabs workspace loaded and run set_environment("virtual pendulum")
+=#
 const rr = Ref([0, pi, 0, 0])
 nu  = 1     # number of controls
 nx  = 4     # number of states
