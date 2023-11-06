@@ -4,6 +4,8 @@
 
 This repo contains a Julia interface to the Quanser hardware-in-the-loop (HIL) SDK. This allows you to control their devices, reading measurements and issuing control commands etc. 
 
+See the Youtube vidoe series [Control of a rotary pendulum using Julia](https://youtube.com/playlist?list=PLC0QOsNQS8hZtOQPHdtul3kpQwMOBL8Qc&si=E5alRBkegrN0P3DM) for several examples on how to use this package.
+
 ## Installation
 
 1. Install the hardware-in-the-loop (HIL) interface from here https://github.com/quanser/hil_sdk_linux_x86_64 (change linux to what's appropriate for your system)
