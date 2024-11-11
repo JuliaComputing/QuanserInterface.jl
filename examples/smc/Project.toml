@@ -1,0 +1,7 @@
+[deps]
+ControlSystemsBase = "aaaaaaaa-a6ca-5380-bf3e-84a91bcd477e"
+DiscretePIDs = "c1363496-6848-4723-8758-079b737f6baf"
+HardwareAbstractions = "9ac91abb-62f4-42c0-88e8-83732e93d543"
+JuliaSimControl = "42a6d8df-d987-4b8a-9d23-46c784d00c33"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+QuanserInterface = "d7748c0a-89fb-413b-a9f0-29aba34b281f"
