@@ -14,7 +14,7 @@ See the Youtube vidoe series [Control of a rotary pendulum using Julia](https://
 
 ### Virtual environment 
 
-To install the virtual QLabs environment on MacOS, download and unzip this file:  https://download.quanser.com/qlabs/latest/QLabs_Installer_maci64.zip
+To install the virtual QLabs environment on MacOS, download and unzip this file:  https://download.quanser.com/qlabs/latest/QLabs_Installer_mac64.zip
 
 For installation on Windows, use : https://download.quanser.com/qlabs/latest/Install%20QLabs.exe 
 
