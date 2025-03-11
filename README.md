@@ -9,7 +9,7 @@ See the Youtube vidoe series [Control of a rotary pendulum using Julia](https://
 ## Installation
 
 1. Install the hardware-in-the-loop (HIL) interface from here https://github.com/quanser/hil_sdk_linux_x86_64 (change linux to what's appropriate for your system)
-2. To use the `PythonBackend` Install Quanser python packages as described [here](https://docs.quanser.com/quarc/documentation/python/installation.html) and manually install and load PythonCall (the python backend is an extension). Optionally, set the default backend using `QuanserInterface.set_default_backend("python")`.
+2. To use the `PythonBackend` Install Quanser python packages as described [here](https://docs.quanser.com/quarc/documentation/python/installation.html) and manually install and load PythonCall (the python backend is an extension). Optionally, set the default backend using `QuanserInterface.set_default_backend("python")`. Install the Virtual Environment first, which will include the Python Wheels.
 3. To use the C backend (default), install the sdk, and if on Linux, possibly symlink `sudo ln -s /usr/lib/x86_64-linux-gnu/libquanser_communications.so.1 /lib/libquanser_communications.so` (or wherever the library is located on your system), I had issues with the `.1` suffix causing Libdl not to find the library. The easiest way to install all the required shared libraries is to follow the python install instructions, i.e., issue the `sudo apt install python3-quanser-apis` after having added their package server.
 
 ### Virtual environment 
