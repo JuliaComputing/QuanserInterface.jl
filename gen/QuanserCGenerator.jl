@@ -2,7 +2,7 @@ using Clang.Generators
 
 LIB_PATH = "/opt/quanser/hil_sdk/include"
 headers =  [joinpath(LIB_PATH, header) for header in filter(x -> endswith(x, ".h"), readdir(LIB_PATH))] # include all .h files in the directory
-output = "src/QuanserBindings.jl"
+output = joinpath(@__DIR__, "QuanserBindings.jl")
 
 # make sure Clang.jl can find necessary headers included by your header file
 clang_args = ["-I", LIB_PATH]
@@ -20,4 +20,4 @@ ctx = create_context(headers, args, options)
 # run generator
 build!(ctx)
 
-println("Bindings generated in $output")
+println("Bindings generated in $output.\nPlease copy the file to src/QuanserBindings.jl")
