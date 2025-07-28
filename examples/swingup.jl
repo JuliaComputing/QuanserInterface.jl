@@ -1,3 +1,4 @@
+#! /usr/bin/env julia
 #=
 This script performs swingup of the pendulum using an energy-based controller, and stabilizes the pendulum at the top using an LQR controller. The controller gain is designed using furuta_lqg.jl
 =#
@@ -12,7 +13,7 @@ using HardwareAbstractions
 using ControlSystemsBase
 using QuanserInterface: energy, measure
 using StaticArrays
-
+import Plots
 
 const rr = Ref([0, pi, 0, 0])
 nu  = 1     # number of controls
@@ -29,13 +30,13 @@ function plotD(D, th=0.2)
     # y[:, 2] .*= -1
     xh = D[4:7, :]'
     u = D[8, :]
-    plot(tvec, xh, layout=6, lab=["arm" "pend" "arm ω" "pend ω"] .* " estimate", framestyle=:zerolines)
-    plot!(tvec, y, sp=[1 2], lab = ["arm" "pend"] .* " meas", framestyle=:zerolines)
-    hline!([-pi pi], lab="", sp=2)
-    hline!([-pi-th -pi+th pi-th pi+th], lab="", l=(:black, :dash), sp=2)
-    plot!(tvec, centraldiff(y) ./ median(diff(tvec)), sp=[3 4], lab="central diff")
-    plot!(tvec, u, sp=5, lab = "u", framestyle=:zerolines)
-    plot!(diff(D[1,:]), sp=6, lab="Δt"); hline!([process.Ts], sp=6, framestyle=:zerolines, lab="Ts")
+    Plots.plot(tvec, xh, layout=6, lab=["arm" "pend" "arm ω" "pend ω"] .* " estimate", framestyle=:zerolines)
+    Plots.plot!(tvec, y, sp=[1 2], lab = ["arm" "pend"] .* " meas", framestyle=:zerolines)
+    Plots.hline!([-pi pi], lab="", sp=2)
+    Plots.hline!([-pi-th -pi+th pi-th pi+th], lab="", l=(:black, :dash), sp=2)
+    # Plots.plot!(tvec, centraldiff(y) ./ median(diff(tvec)), sp=[3 4], lab="central diff")
+    Plots.plot!(tvec, u, sp=5, lab = "u", framestyle=:zerolines)
+    Plots.plot!(diff(D[1,:]), sp=6, lab="Δt"); Plots.hline!([process.Ts], sp=6, framestyle=:zerolines, lab="Ts")
 end
 normalize_angles(x::Number) = mod(x, 2pi)
 normalize_angles(x::AbstractVector) = SA[(x[1]), normalize_angles(x[2]), x[3], x[4]]
@@ -148,7 +149,7 @@ function runplot(process; kwargs...)
     plotD(D)
 end
 
-runplot(process; Tf = 500)
+runplot(process; Tf = 10)
 
 # ## Simulated process
 # process = QuanserInterface.QubeServoPendulumSimulator(; Ts, p = QuanserInterface.pendulum_parameters(true));
