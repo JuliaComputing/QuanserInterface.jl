@@ -2,9 +2,9 @@
 This script performs swingup of the virtual pendulum using an energy-based controller, and stabilizes the pendulum at the top using an LQR controller.
 =#
 
-if splitdir(Base.active_project())[1] != dirname(@__DIR__)
-    @warn "Not in the QuanserInterface.jl project, activating it"
-    using Pkg; Pkg.activate(dirname(@__DIR__))
+if splitdir(Base.active_project())[1] != @__DIR__
+    @warn "Not in the `QuanserInterface.jl/examples` project, activating it"
+    using Pkg; Pkg.activate(@__DIR__)
 end
 
 using QuanserInterface
