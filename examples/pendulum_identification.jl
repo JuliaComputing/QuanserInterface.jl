@@ -3,7 +3,7 @@ This script performs maximum likelihood estimation of the parameters of the pend
 
 The estimation uses an UnscentedKalmanFilter to perform state estimation, the system is unstable and integrates a force disturbance, and performing identification using a state estimator is a good way of handling both those problems.
 =#
-cd(@__DIR__)
+
 using DelimitedFiles, Plots
 N = 250
 D = readdlm("swingup.csv", ',')[2:N, :] .|> identity
