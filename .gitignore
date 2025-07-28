@@ -1,2 +1,4 @@
 /Manifest.toml
 /.CondaPkg
+/gen/Manifest.toml
+/examples/Manifest.toml
