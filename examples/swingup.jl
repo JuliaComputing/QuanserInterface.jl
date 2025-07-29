@@ -149,7 +149,7 @@ function runplot(process; kwargs...)
     plotD(D)
 end
 
-runplot(process; Tf = 10)
+runplot(process; Tf =100)
 
 # ## Simulated process
 # process = QuanserInterface.QubeServoPendulumSimulator(; Ts, p = QuanserInterface.pendulum_parameters(true));
