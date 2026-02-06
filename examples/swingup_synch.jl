@@ -12,7 +12,7 @@ cd(@__DIR__)
 using Pkg; Pkg.activate("..")
 using QuanserInterface
 using HardwareAbstractions
-using SynchCompiler, SynchRuntime
+using SynchCompiler, SynchJulia
 using StaticArrays
 
 # ==============================================================================
@@ -43,7 +43,7 @@ end
 
 # Energy-based swingup controller
 @node function energyswingup(θ::Float64, α::Float64, α̇::Float64, umax::Float64)::(u::Float64)
-    αshifted = α - 3.141592653589793
+    αshifted = α - π
     e = energy(αshifted, α̇)
     eref = energy(0.0, 0.0)
     ue = 80.0 * (e - eref) * sign(α̇ * cos(αshifted))
@@ -53,7 +53,7 @@ end
 # LQR stabilization controller (gains designed for ts=0.01)
 @node function lqrstabilizer(θ::Float64, αnorm::Float64, dθ::Float64, dα::Float64)::(u::Float64)
     e1 = 0.0 - θ
-    e2 = 3.141592653589793 - αnorm
+    e2 = π - αnorm
     e3 = 0.0 - dθ
     e4 = 0.0 - dα
     uraw = -7.410199310542298 * e1 + -36.40730995983665 * e2 + -2.0632501290782095 * e3 + -3.149033572767301 * e4
@@ -71,7 +71,7 @@ end
 
     # Mode conditions
     ooblimit = deg2rad(110)
-    neartop = abs(αnorm - 3.141592653589793) < 0.40
+    neartop = abs(αnorm - π) < 0.40
     outofbounds = (θ > ooblimit) || (θ < -ooblimit)
 
     # Compute control for each mode
@@ -95,7 +95,7 @@ end
 ## Build and simulate
 # ==============================================================================
 
-exe = build(swingupnode, (Float64, Float64, Float64, Float64))
+exe = SynchExecutable(swingupnode, (Float64, Float64, Float64, Float64))
 
 Ts = 0.01
 process = QuanserInterface.QubeServoPendulumSimulator(; Ts, p = QuanserInterface.pendulum_parameters(true))

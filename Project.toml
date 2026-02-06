@@ -17,7 +17,7 @@ Preferences = "21216c6a-2e73-6563-6e65-726566657250"
 RobustAndOptimalControl = "21fd56a4-db03-40ee-82ee-a87907bee541"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 SynchCompiler = "5d9dccf6-a926-4748-b7e2-6521ccc431d1"
-SynchRuntime = "0f94e3e4-824a-4831-9c35-591b87e5a443"
+SynchJulia = "a1b2c3d4-5e6f-7a8b-9c0d-e1f2a3b4c5d6"
 
 [weakdeps]
 PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
