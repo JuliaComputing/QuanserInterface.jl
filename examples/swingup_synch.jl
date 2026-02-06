@@ -16,7 +16,7 @@ using SynchCompiler, SynchRuntime
 using StaticArrays
 
 # ==============================================================================
-## FFI helper functions (typed wrappers for use inside @node)
+## FFI helper functions (called from @node via FFI)
 # ==============================================================================
 
 function energy(α::Float64, α̇::Float64)::Float64
@@ -28,11 +28,6 @@ function energy(α::Float64, α̇::Float64)::Float64
     return 0.5 * Jp_cm * α̇^2 + mp * g * l * (1 + cos(α))
 end
 
-sign_f(x::Float64)::Float64 = sign(x)
-cos_f(x::Float64)::Float64 = cos(x)
-abs_f(x::Float64)::Float64 = abs(x)
-clamp_f(x::Float64, lo::Float64, hi::Float64)::Float64 = clamp(x, lo, hi)
-mod_f(x::Float64, y::Float64)::Float64 = mod(x, y)
 
 # ==============================================================================
 ## SynchJulia nodes
@@ -51,8 +46,8 @@ end
     αshifted = α - 3.141592653589793
     e = energy(αshifted, α̇)
     eref = energy(0.0, 0.0)
-    ue = 80.0 * (e - eref) * sign_f(α̇ * cos_f(αshifted))
-    u = clamp_f(ue - 0.2 * θ, -umax, umax)
+    ue = 80.0 * (e - eref) * sign(α̇ * cos(αshifted))
+    u = clamp(ue - 0.2 * θ, -umax, umax)
 end
 
 # LQR stabilization controller (gains designed for ts=0.01)
@@ -62,7 +57,7 @@ end
     e3 = 0.0 - dθ
     e4 = 0.0 - dα
     uraw = -7.410199310542298 * e1 + -36.40730995983665 * e2 + -2.0632501290782095 * e3 + -3.149033572767301 * e4
-    u = clamp_f(uraw, -10.0, 10.0)
+    u = clamp(uraw, -10.0, 10.0)
 end
 
 # Top-level swingup controller: mode switching between OOB correction, LQR, and energy swingup
@@ -72,11 +67,11 @@ end
     dα = velocityestimator(α, ts)
 
     # Normalize pendulum angle to [0, 2π)
-    αnorm = mod_f(α, 6.283185307179586)
+    αnorm = mod(α, 2pi)
 
     # Mode conditions
-    ooblimit = 1.9198621771937625 # deg2rad(110)
-    neartop = abs_f(αnorm - 3.141592653589793) < 0.40
+    ooblimit = deg2rad(110)
+    neartop = abs(αnorm - 3.141592653589793) < 0.40
     outofbounds = (θ > ooblimit) || (θ < -ooblimit)
 
     # Compute control for each mode
@@ -129,8 +124,7 @@ D = reduce(hcat, data)
 # Verify: pendulum should be near [0, π]
 using LinearAlgebra
 final_state = D[2:3, end]
-@info "Final state: θ=$(final_state[1]), α=$(final_state[2]), target: [0, π]"
-@info "Error norm: $(norm(final_state - [0, π]))"
+@info "Final state: θ=$(final_state[1]), α=$(final_state[2]), target: [0, ±π]"
 
 # ==============================================================================
 ## Plot results
