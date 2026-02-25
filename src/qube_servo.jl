@@ -114,7 +114,34 @@ outputrange(p::QubeServo) = [(-10,10)]
 isstable(p::QubeServo)    = true
 isasstable(p::QubeServo)  = true # Friction
 
+# ==============================================================================
+## QubeServoSimulator
+# ==============================================================================
 
+function servo_dynamics(x,u,p,t)
+    p,v = x
+    SA[v, u[1]]
+end
+
+@kwdef mutable struct QubeServoSimulator{X,F,P,D,M} <: AbstractQubeServo
+    const Ts::Float64 = 0.01
+    x::X = @SVector zeros(2)
+    const ddyn::F = hw.rk4(servo_dynamics, Ts; supersample=10)
+    p::P = nothing
+    dynamics::D = servo_dynamics
+    measurement::M = (x, u, p, t) -> SA[x[1]]
+end
+
+processtype(::QubeServoSimulator) = SimulatedProcess()
+function control(p::QubeServoSimulator, u::Vector{Float64})
+    p.x = p.ddyn(p.x, u, p.p, 0)
+    u
+end
+function measure(p::QubeServoSimulator)
+    p.measurement(p.x, 0, p.p, 0)
+end
+finalize(p::QubeServoSimulator) = nothing
+initialize(p::QubeServoSimulator) = nothing
 # ==============================================================================
 ## QubeServoPendulum
 # ==============================================================================
