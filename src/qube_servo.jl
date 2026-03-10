@@ -152,7 +152,7 @@ initialize(p::QubeServoSimulator) = nothing
         digital_channel_write = UInt32[0],
         encoder_channel       = UInt32[0, 1],
         analog_channel_write  = UInt32[0],
-        analog_channel_read   = UInt32[0],
+        analog_channel_read   = UInt32[],
         encoder_read_buffer   = zeros(Int32, 2),
         analog_read_buffer    = zeros(Int32, 0),
     )
