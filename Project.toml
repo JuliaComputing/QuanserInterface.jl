@@ -22,6 +22,9 @@ PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 [extensions]
 QuanserInterfacePythonCallExt = ["PythonCall"]
 
+[workspace]
+projects = ["test", "lib", "examples"]
+
 [compat]
 CEnum = "0.4.2, 0.5"
 ControlSystemIdentification = "2.6"
