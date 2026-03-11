@@ -23,7 +23,7 @@ If on Linux, possibly symlink `sudo ln -s /usr/lib/x86_64-linux-gnu/libquanser_c
 
 3. To use the `PythonBackend`, install Quanser python packages as described [here](https://docs.quanser.com/quarc/documentation/python/installation.html), and manually install and load `PythonCall.jl` (the python backend is an extension). Optionally, set the default backend using `QuanserInterface.set_default_backend("python")`. Install the Virtual Environment first, which will include the Python Wheels.
 
-### Virtual environment 
+### Virtual Quanser 
 
 To install the virtual QLabs environment on MacOS, download and unzip this file:  https://download.quanser.com/qlabs/latest/QLabs_Installer_mac64.zip
 

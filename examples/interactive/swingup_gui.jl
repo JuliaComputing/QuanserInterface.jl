@@ -3,9 +3,9 @@
 This script performs swingup of the pendulum using an energy-based controller, and stabilizes the pendulum at the top using an LQR controller. The controller gain is designed using furuta_lqg.jl
 =#
 
-if splitdir(Base.active_project())[1] != @__DIR__
+if splitdir(Base.active_project())[1] != dirname(@__DIR__)
     @warn "Not in the QuanserInterface.jl/examples project, activating it"
-    using Pkg; Pkg.activate(@__DIR__)
+    using Pkg; Pkg.activate(dirname(@__DIR__))
 end
 
 using QuanserInterface
@@ -13,35 +13,75 @@ using HardwareAbstractions
 using ControlSystemsBase
 using QuanserInterface: energy, measure
 using StaticArrays
-import Plots
+using WGLMakie
 
+
+# Define some useful parameters and constants 
+# to control the Quanser pendulum
 const rr = Ref([0, pi, 0, 0])
 nu  = 1     # number of controls
 nx  = 4     # number of states
 Ts  = 0.005 # sampling time
 
-function plotD(D, th=0.2)
-    if size(D, 2) > 200*200
-        return
-    end
-    tvec = D[1, :]
-    y = D[2:3, :]'
-    # y[:, 2] .-= pi
-    # y[:, 2] .*= -1
-    xh = D[4:7, :]'
-    u = D[8, :]
-    Plots.plot(tvec, xh, layout=6, lab=["arm" "pend" "arm ω" "pend ω"] .* " estimate", framestyle=:zerolines)
-    Plots.plot!(tvec, y, sp=[1 2], lab = ["arm" "pend"] .* " meas", framestyle=:zerolines)
-    Plots.hline!([-pi pi], lab="", sp=2)
-    Plots.hline!([-pi-th -pi+th pi-th pi+th], lab="", l=(:black, :dash), sp=2)
-    # Plots.plot!(tvec, centraldiff(y) ./ median(diff(tvec)), sp=[3 4], lab="central diff")
-    Plots.plot!(tvec, u, sp=5, lab = "u", framestyle=:zerolines)
-    Plots.plot!(diff(D[1,:]), sp=6, lab="Δt"); Plots.hline!([process.Ts], sp=6, framestyle=:zerolines, lab="Ts")
+# Initialize the Quanser pendulum, your computer
+# must be connected to it at this point.
+process = QuanserInterface.QubeServoPendulum(; Ts)
+rr[][1] = deg2rad(0)
+rr[][2] = pi
+# Run a test measurement, this returns two angles
+# in radians, the first is the angle of the "block"/rotator,
+# the second is the angle of the arm.
+y = QuanserInterface.measure(process)
+
+# Create a figure to visualize the pendulum.
+fig = Figure()
+# The `LScene` is a 3D graphics context on which we will plot the pendulum.
+# This is currently quite primitive, but we can easily beautify it by using a `mesh!` plot
+visualization_scene = LScene(fig[1, 1])
+# The "block" points straight ahead
+block_plot = lines!(visualization_scene, [Point3f(0, 0, 0), Point3f(1, 0, 0)]; linewidth = 5, color = :gray)
+# The "arm" is assumed to be hanging down initially.
+arm_plot = lines!(visualization_scene, [Point3f(1, 0, 0), Point3f(1, 0, -1)]; linewidth = 5, color = :red)
+
+# This slider grid will allow us to control the force applied to the pendulum.
+# You can add more named tuples to create more sliders, that can update more parameters.
+sg = SliderGrid(
+    fig[2, 1],
+    (; label = "Force", range = LinRange(60, 90, 100), startvalue = 80.0, format = "{:.2f}");
+    tellwidth = false,
+    tellheight = true
+)
+# Slider observables are of type Any by default
+force_untyped = sg.sliders[1].value
+# but you can force it to be of a certain type
+force = lift(Float64, force_untyped)
+
+# This callback is called every time the figure is rendered.
+# It updates the plots to reflect the current state of the pendulum.
+on(events(fig).tick) do tick
+    (block_angle, arm_angle) = QuanserInterface.measure(process)
+    # Rotate the block around the z-axis
+    block_rotation = to_rotation((Vec3f(0, 0, 1), block_angle))
+    # Rotate the arm around the x-axis which is its axis of rotation
+    arm_rotation   = to_rotation((Vec3f(1, 0, 0), arm_angle))
+    # Rotate the plots to reflect the current state of the pendulum.
+    rotate!(block_plot, block_rotation)
+    rotate!(arm_plot, block_rotation * arm_rotation)
 end
+
+# ## Control code
+# From here, all the code is adapted from the `swingup.jl` example.
+# The main difference is that we use the `@periodically_yielding` macro
+# allows the graphics context to be updated in the main thread,
+# while the control loop runs in the background.
 normalize_angles(x::Number) = mod(x, 2pi)
 normalize_angles(x::AbstractVector) = SA[(x[1]), normalize_angles(x[2]), x[3], x[4]]
 
-function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
+# Note the new kwarg here - the syntax
+# to update a Ref and an Observable is the same
+# so they are interchangeable, and you can pass 
+# either an Observable or a Ref to `force`.
+function swingup(process; force = Ref(80.0), Tf = 10, verbose=true, stab=true, umax=2.0)
     Ts = process.Ts
     N = round(Int, Tf/Ts)
     data = Vector{Vector{Float64}}(undef, 0)
@@ -71,8 +111,9 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
         t_start = time()
         u = [0.0]
         oob = 0
+
         for i = 1:N
-            @periodically Ts simulation begin 
+            @periodically_yielding Ts begin 
                 t = simulation ? (i-1)*Ts : time() - t_start
                 y = QuanserInterface.measure(process)
                 dy = (y - yo) ./ Ts
@@ -108,7 +149,8 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
                         αr = r[2] - pi
                         α̇ = xh[4]
                         E = energy(α, α̇)
-                        uE = 80*(E - energy(αr,0))*sign(α̇*cos(α))
+                        # NOTE: this is where you get the force
+                        uE = force[] * (E - energy(αr,0))*sign(α̇*cos(α))
                         u = SA[clamp(uE - 0.2*y[1], -umax, umax)]
                     end
                     control(process, Vector(u))
@@ -131,42 +173,19 @@ function swingup(process; Tf = 10, verbose=true, stab=true, umax=2.0)
     reduce(hcat, data)
 end
 ##
-process = QuanserInterface.QubeServoPendulum(; Ts)
 # home!(process, 38)
 ##
-function runplot(process; kwargs...)
-    rr[][1] = deg2rad(0)
-    rr[][2] = pi
-    y = QuanserInterface.measure(process)
-    if processtype(process) isa SimulatedProcess
-        process.x = 0*process.x
-    elseif abs(y[2]) > 0.8 || !(-2.5 < y[1] < 2.5)
-        @info "Auto homing"
-        autohome!(process)
-    end
-    global D
-    D = swingup(process; kwargs...)
-    plotD(D)
+
+if processtype(process) isa SimulatedProcess
+    process.x = 0*process.x
+elseif abs(y[2]) > 0.8 || !(-2.5 < y[1] < 2.5)
+    @info "Auto homing"
+    autohome!(process)
 end
+# Spawn the control loop in a new thread.
+# This allows graphics updates to happen on the main thread,
+# while the control loop runs separately, but in the same process.
+task = Threads.@spawn swingup(process; force = force, Tf = 200, verbose = false)
 
-runplot(process; Tf =100)
-
-# ## Simulated process
-# process = QuanserInterface.QubeServoPendulumSimulator(; Ts, p = QuanserInterface.pendulum_parameters(true));
-
-# @profview_allocs runplot(process; Tf = 5) sample_rate=0.1
-
-# ##
-
-# task = @spawn runplot(process; Tf = 15)
-# rr[][1] = deg2rad(-30)
-# rr[][1] = deg2rad(-20)
-# rr[][1] = deg2rad(-10)
-# rr[][1] = deg2rad(0)
-# rr[][1] = deg2rad(10)
-# rr[][1] = deg2rad(20)
-# rr[][1] = deg2rad(30)
-
-
-# rr[][2] = pi
-# rr[][2] = 0
+# To interrupt:
+# Base.throwto(task, InterruptException())
